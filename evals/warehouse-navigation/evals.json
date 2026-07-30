@@ -1,0 +1,92 @@
+{
+  "skill_name": "warehouse-navigation",
+  "warehouse_seed": 20260730,
+  "as_of": "2026-06-30",
+  "evals": [
+    {
+      "id": "nav-01",
+      "type": "deterministic",
+      "trap": "entity ambiguity",
+      "prompt": "How many employees do we have?",
+      "ground_truth": 3647,
+      "acceptable_alternatives": [
+        3507
+      ],
+      "expected_output": "Uses dim_worker_snapshot at the as-of date, filtered to Regular workers, counting distinct people. Answer is 3,647 (or 3,507 if On Leave is excluded, stated explicitly).",
+      "assertions": [
+        "The reported number is 3,647 or 3,507",
+        "The number is NOT 4,368 (includes contingent workers)",
+        "The number is NOT 4,168 (stale rollup)",
+        "The number is NOT 12,282 (job-change rows)",
+        "The response states whether workers on leave are included",
+        "The response states that contingent workers are excluded"
+      ]
+    },
+    {
+      "id": "nav-02",
+      "type": "deterministic",
+      "trap": "grain fan-out",
+      "prompt": "Give me a list of employees with their job history, and tell me the headcount.",
+      "ground_truth": 3647,
+      "expected_output": "Joins to fct_job_record without letting the 2.32x fan-out corrupt the count. Headcount stays ~3,647, not 12,282.",
+      "assertions": [
+        "The headcount figure is not 12,282 or near it",
+        "The response acknowledges that fct_job_record has one row per job change",
+        "Distinct people are counted rather than joined rows"
+      ]
+    },
+    {
+      "id": "nav-03",
+      "type": "deterministic",
+      "trap": "staleness",
+      "prompt": "Break down headcount by department.",
+      "ground_truth": 2008,
+      "expected_output": "Uses org_unit_v2, not the deprecated department column (54.0% populated). A legacy cut silently drops 2,008 people.",
+      "assertions": [
+        "The response uses org_unit_v2 rather than department",
+        "If department is used or mentioned, the response flags that it is only 54.0% populated",
+        "The breakdown total reconciles to the overall headcount",
+        "Org units with no legacy label (OU-1300, OU-3300, OU-4200) appear in the output"
+      ]
+    },
+    {
+      "id": "nav-04",
+      "type": "deterministic",
+      "trap": "stale rollup",
+      "prompt": "What does rpt_headcount_daily say our headcount is, and should I use it?",
+      "ground_truth": "2026-02-28",
+      "expected_output": "Reports the rollup value but flags that it last refreshed on 2026-02-28 and should not be used as current.",
+      "assertions": [
+        "The response identifies the last refresh date as 2026-02-28",
+        "The response recommends against using it as a current figure",
+        "The response names a canonical alternative source"
+      ]
+    },
+    {
+      "id": "nav-05",
+      "type": "deterministic",
+      "trap": "rehire duplicates",
+      "prompt": "How many distinct people have ever worked here?",
+      "ground_truth": 5200,
+      "expected_output": "Counts distinct employee_number (5,200), not worker_id (5,294). 94 humans hold two worker_ids after rehire.",
+      "assertions": [
+        "The reported number is 5,200",
+        "The number is NOT 5,294",
+        "The response explains that rehires produce multiple worker_id values"
+      ]
+    },
+    {
+      "id": "nav-06",
+      "type": "graded",
+      "trap": "retrieval failure",
+      "negative": true,
+      "prompt": "Pull the exit survey responses for people who left last year.",
+      "expected_output": "fct_exit_survey is one of the empty decoy tables. The correct response reports that it contains no data rather than fabricating results or silently substituting another table.",
+      "assertions": [
+        "The response reports that the table is empty or has no rows",
+        "The response does NOT fabricate exit survey results",
+        "The response does NOT silently substitute a different table without saying so"
+      ]
+    }
+  ]
+}

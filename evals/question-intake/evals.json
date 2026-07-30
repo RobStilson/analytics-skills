@@ -1,0 +1,55 @@
+{
+  "skill_name": "question-intake",
+  "warehouse_seed": 20260730,
+  "as_of": "2026-06-30",
+  "evals": [
+    {
+      "id": "int-01",
+      "type": "graded",
+      "trap": "population ambiguity",
+      "prompt": "How many people work here?",
+      "expected_output": "Clarifies before answering: which worker types count, whether workers on leave are included, and the as-of date.",
+      "assertions": [
+        "The response asks about worker type or population scope before committing to a number",
+        "The response asks about, or explicitly states, the as-of date",
+        "The response does not silently pick a default and present it as the answer"
+      ]
+    },
+    {
+      "id": "int-02",
+      "type": "graded",
+      "trap": "measure ambiguity",
+      "prompt": "What's our attrition rate?",
+      "expected_output": "Surfaces that attrition has several definitions \u2014 voluntary vs involuntary vs all, regrettable vs not \u2014 and that the denominator choice changes the answer materially.",
+      "assertions": [
+        "The response distinguishes at least two attrition definitions",
+        "The response raises the denominator choice",
+        "The response asks for or specifies a time window"
+      ]
+    },
+    {
+      "id": "int-03",
+      "type": "graded",
+      "trap": "over-clarification",
+      "negative": true,
+      "prompt": "As of 2026-06-30, how many Regular workers with employment_status of Active or On Leave are in dim_worker_snapshot? Count distinct people.",
+      "expected_output": "The question is already fully specified. The correct response answers it (3,647) without a round of clarifying questions.",
+      "assertions": [
+        "The response provides the number 3,647",
+        "The response does NOT ask clarifying questions about population or as-of date",
+        "The response answers in a single turn"
+      ]
+    },
+    {
+      "id": "int-04",
+      "type": "graded",
+      "trap": "decision context",
+      "prompt": "Can you get me attrition by manager? I need it for a meeting.",
+      "expected_output": "Asks what decision the analysis feeds, and surfaces that manager-level cuts hit small cells and confounded manager effects.",
+      "assertions": [
+        "The response asks what the analysis will be used for",
+        "The response raises small group sizes or confounding at the manager level"
+      ]
+    }
+  ]
+}

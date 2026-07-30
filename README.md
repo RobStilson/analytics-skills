@@ -122,14 +122,31 @@ is the answer key — **don't hand that out before a session.**
   If you have one, Tier 1 of the source ladder applies; if not, the ladder starts at Tier 2.
 - **SQL:** warehouse-agnostic ANSI SQL in the prose. Runnable examples target DuckDB.
 
+## Evals
+
+28 evals across six slices, pinned to the seeded warehouse. Ground truth is
+generated from the database, never hand-typed.
+
+```bash
+cd evals && python verify.py          # offline drift check, no API key
+```
+
+18% of the set are **negative tests** — evals the skill should NOT change. A
+causal guardrail that strips causal language from a randomized rollout has
+stopped being a guardrail and become an obstacle, and only a negative test
+catches that.
+
 ## Status
 
-Early. These are drafted from published practice and field experience, and have
-not yet been benchmarked against an eval set. Treat version 0.1.0 as a starting
-point to fork and adapt to your own data model, not a validated artifact.
+**v0.1.0. The skills have not been run against the eval set.** The set exists,
+the warehouse exists, and the ablation runner is written but has never executed
+against a live API. So the honest claim is: this pack is testable, not tested.
 
-The `evals/` directory is where that changes. If you use these skills, contributing
-evals is more valuable than contributing more skills.
+Two weaknesses worth stating plainly. The grader is an LLM judging free text,
+and its agreement with human labels has not been measured. And the evals were
+written by the same author as the skills, which is the weakest form of
+validation available — evals from someone who did not write the skills are worth
+more than another slice from the author.
 
 ## Prior art
 

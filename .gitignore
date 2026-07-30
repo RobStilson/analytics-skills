@@ -27,3 +27,8 @@ venv/
 # Eval run outputs
 *-workspace/
 evals/results/
+
+# Eval run outputs
+evals/results/
+evals/*.verify
+__pycache__/

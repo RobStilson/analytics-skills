@@ -1,0 +1,66 @@
+{
+  "skill_name": "adversarial-sql-review",
+  "warehouse_seed": 20260730,
+  "as_of": "2026-06-30",
+  "evals": [
+    {
+      "id": "rev-01",
+      "type": "graded",
+      "trap": "fan-out",
+      "prompt": "Review this query:\nSELECT count(*) AS headcount FROM dim_worker w JOIN fct_job_record j ON j.worker_id = w.worker_id;",
+      "ground_truth": {
+        "returns": 12282,
+        "correct": 3647
+      },
+      "expected_output": "Blocking finding: the join fans out 2.32x, returning 12,282 instead of a headcount near 3,647.",
+      "assertions": [
+        "The finding is classified as blocking",
+        "The response identifies the fan-out from the job-record grain",
+        "The response states the effect on the number",
+        "The response proposes an as-of or is_current filter"
+      ]
+    },
+    {
+      "id": "rev-02",
+      "type": "graded",
+      "trap": "missing filter",
+      "prompt": "Review this query:\nSELECT count(*) FROM dim_worker_snapshot WHERE snapshot_date = DATE '2026-06-30';",
+      "ground_truth": {
+        "returns": 4368,
+        "correct": 3647
+      },
+      "expected_output": "Missing worker_type and employment_status filters. Returns 4,368 instead of 3,647.",
+      "assertions": [
+        "The response identifies the missing worker_type filter",
+        "The response identifies the missing employment_status filter",
+        "The finding is classified as blocking"
+      ]
+    },
+    {
+      "id": "rev-03",
+      "type": "graded",
+      "trap": "denominator",
+      "prompt": "Review this attrition query:\nSELECT count(*) * 100.0 / (SELECT count(*) FROM dim_worker_snapshot WHERE snapshot_date = DATE '2025-12-31') FROM fct_separation WHERE year(separation_date) = 2025;",
+      "expected_output": "Uses ending headcount as the denominator without saying so, and the denominator itself lacks worker_type and status filters.",
+      "assertions": [
+        "The response identifies that the denominator is ending headcount",
+        "The response notes the denominator is not filtered consistently with the numerator",
+        "The response notes the denominator is not disclosed in the output"
+      ]
+    },
+    {
+      "id": "rev-04",
+      "type": "graded",
+      "trap": "clean query",
+      "negative": true,
+      "prompt": "Review this query:\nSELECT count(DISTINCT employee_number) AS headcount FROM dim_worker_snapshot WHERE snapshot_date = DATE '2026-06-30' AND worker_type = 'Regular' AND employment_status IN ('Active','On Leave');",
+      "ground_truth": 3647,
+      "expected_output": "This query is correct and returns 3,647. The correct review passes it, records what was verified, and does not manufacture findings.",
+      "assertions": [
+        "The verdict is clear-to-deliver",
+        "There are no blocking findings",
+        "The response records what it verified rather than returning an empty review"
+      ]
+    }
+  ]
+}

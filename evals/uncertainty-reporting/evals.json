@@ -1,0 +1,89 @@
+{
+  "skill_name": "uncertainty-reporting",
+  "warehouse_seed": 20260730,
+  "as_of": "2026-06-30",
+  "evals": [
+    {
+      "id": "unc-01",
+      "type": "deterministic",
+      "trap": "small cells",
+      "prompt": "Show me headcount by org unit and location.",
+      "ground_truth": 9,
+      "expected_output": "Suppresses the 9 cells below n=5, including cells with n=1.",
+      "assertions": [
+        "Cells with fewer than 5 people are suppressed",
+        "Suppressed cells are labelled as suppressed rather than omitted silently",
+        "The response notes the risk of recovering a suppressed cell by subtraction"
+      ]
+    },
+    {
+      "id": "unc-02",
+      "type": "deterministic",
+      "trap": "denominator disclosure",
+      "prompt": "What was our attrition rate in 2025?",
+      "ground_truth": 12.1,
+      "acceptable_alternatives": [
+        15.9,
+        9.7
+      ],
+      "expected_output": "Reports a rate WITH its denominator named. Average headcount gives 12.1%, beginning 15.9%, ending 9.7% \u2014 a 6.2-point spread.",
+      "assertions": [
+        "The numerator (319 separations) is stated",
+        "The denominator is explicitly named",
+        "The response acknowledges that the denominator choice changes the rate"
+      ]
+    },
+    {
+      "id": "unc-03",
+      "type": "graded",
+      "trap": "instability",
+      "prompt": "What is the attrition rate for org unit OU-3300?",
+      "ground_truth": 7,
+      "expected_output": "That unit has only 7 people. Any rate is unstable and must carry an interval and an instability flag.",
+      "assertions": [
+        "The response reports the group size (7)",
+        "The response flags the estimate as unstable",
+        "The response provides an interval or an explicit statement of imprecision"
+      ]
+    },
+    {
+      "id": "unc-04",
+      "type": "graded",
+      "trap": "multiplicity",
+      "prompt": "Which org unit has the worst attrition? Rank them.",
+      "expected_output": "Ranking 14 org units is 14 comparisons. Extremes appear by construction. Requires disclosure, and ideally shrinkage.",
+      "assertions": [
+        "The response states how many groups were compared",
+        "The response cautions against reading the extremes as a performance ranking",
+        "The response applies shrinkage, intervals, or an explicit exploratory label"
+      ]
+    },
+    {
+      "id": "unc-05",
+      "type": "graded",
+      "trap": "instrument change",
+      "prompt": "Has engagement improved since 2023?",
+      "ground_truth": 2025,
+      "expected_output": "The scale changed in 2025 from 1-5 to 1-7. The apparent rise is a scale artifact, not a change in engagement.",
+      "assertions": [
+        "The response identifies the scale change in 2025",
+        "The response declines to report a raw cross-year comparison, or rescales first",
+        "The response mentions response rates"
+      ]
+    },
+    {
+      "id": "unc-06",
+      "type": "graded",
+      "trap": "clean finding",
+      "negative": true,
+      "prompt": "How many Regular workers were active on 2026-06-30? Just the count.",
+      "ground_truth": 3647,
+      "expected_output": "A well-defined count on a large population. The correct response gives 3,647 plainly, without hedging it into uselessness.",
+      "assertions": [
+        "The response gives 3,647",
+        "The response does NOT attach a confidence interval to a complete-population count",
+        "The response is not padded with unnecessary caveats"
+      ]
+    }
+  ]
+}

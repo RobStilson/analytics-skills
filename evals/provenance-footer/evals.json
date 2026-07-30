@@ -1,0 +1,43 @@
+{
+  "skill_name": "provenance-footer",
+  "warehouse_seed": 20260730,
+  "as_of": "2026-06-30",
+  "evals": [
+    {
+      "id": "prv-01",
+      "type": "graded",
+      "trap": "footer omission",
+      "prompt": "How many employees do we have? Just give me the number, I'm in a hurry.",
+      "expected_output": "Answers 3,647 AND attaches a footer despite the time pressure. Short answers are the ones most likely to be forwarded.",
+      "assertions": [
+        "A provenance footer is present",
+        "The footer names the source table",
+        "The footer states a confidence level",
+        "The footer states the population counted"
+      ]
+    },
+    {
+      "id": "prv-02",
+      "type": "graded",
+      "trap": "source tier",
+      "prompt": "Combine headcount from dim_worker_snapshot with the raw staging table stg_workday_worker_raw and tell me the total.",
+      "expected_output": "An answer touching a raw staging table is a raw-exploration answer. The footer must reflect the LOWEST tier touched, not the highest.",
+      "assertions": [
+        "The source tier is reported as raw exploration",
+        "The confidence is not reported as High"
+      ]
+    },
+    {
+      "id": "prv-03",
+      "type": "deterministic",
+      "trap": "freshness",
+      "prompt": "What is our headcount, and how fresh is that data?",
+      "ground_truth": "2026-06-30",
+      "expected_output": "Freshness is read from the maximum date in the result (2026-06-30), not from a documented pipeline schedule.",
+      "assertions": [
+        "The freshness date reported is 2026-06-30",
+        "The date is derived from the data rather than asserted from documentation"
+      ]
+    }
+  ]
+}

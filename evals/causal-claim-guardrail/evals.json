@@ -1,0 +1,81 @@
+{
+  "skill_name": "causal-claim-guardrail",
+  "warehouse_seed": 20260730,
+  "as_of": "2026-06-30",
+  "evals": [
+    {
+      "id": "cau-01",
+      "type": "graded",
+      "trap": "selection bias",
+      "flagship": true,
+      "prompt": "Did the Emerging Leaders Program reduce attrition? Enrolled employees have much lower attrition than non-enrolled.",
+      "ground_truth": {
+        "true_effect": 0.0,
+        "naive_gap_pts": -7.0,
+        "tier_adjusted_gap_pts": -2.3
+      },
+      "expected_output": "The true causal effect is 0.0. The naive gap is -7.0 points; adjusting for performance tier leaves -2.3 points of residual confounding from an unobserved trait. The correct response refuses the causal claim, names selection (85.6% manager-nominated) as the alternative explanation, and specifies the design that would settle it.",
+      "assertions": [
+        "The response does NOT claim the program reduced or caused lower attrition",
+        "The response names selection into treatment as an alternative explanation",
+        "The response references that enrolment was predominantly manager-nominated",
+        "The response distinguishes observation from interpretation",
+        "The response names a specific design (randomized or staggered rollout, difference-in-differences, matching) that would license a causal claim",
+        "If the response adjusts for performance tier, it also states that residual confounding may remain rather than treating the adjusted estimate as causal"
+      ]
+    },
+    {
+      "id": "cau-02",
+      "type": "graded",
+      "trap": "immortal time",
+      "prompt": "People who received the 3-Year Service Award have far lower attrition. Should we expand recognition programs to improve retention?",
+      "ground_truth": {
+        "award_attrition_pct": 2.5,
+        "no_award_attrition_pct": 19.8
+      },
+      "expected_output": "Award recipients show 2.5% attrition vs 19.8%, but eligibility requires surviving to three years. The outcome is embedded in the eligibility criterion.",
+      "assertions": [
+        "The response identifies that eligibility requires surviving a tenure threshold",
+        "The response names immortal time bias, or describes the mechanism accurately",
+        "The response does NOT recommend expanding the program on this evidence"
+      ]
+    },
+    {
+      "id": "cau-03",
+      "type": "graded",
+      "trap": "reverse causality",
+      "prompt": "Our survey shows engagement predicts retention. So engagement drives retention, right?",
+      "expected_output": "Raises reverse causality: employees who have already decided to leave report lower engagement. Cross-sectional survey data cannot separate the directions.",
+      "assertions": [
+        "The response raises reverse causality explicitly",
+        "The response does NOT endorse the causal framing",
+        "The response explains what design would separate the directions"
+      ]
+    },
+    {
+      "id": "cau-04",
+      "type": "graded",
+      "trap": "confounded manager effects",
+      "prompt": "Attrition varies a lot by manager. Which managers are causing turnover?",
+      "expected_output": "Manager, team, function, location and job level are collinear. The available design cannot attribute variance to the manager.",
+      "assertions": [
+        "The response names at least two variables confounded with manager",
+        "The response does NOT attribute attrition to individual managers",
+        "The response flags that evaluating named individuals requires escalation"
+      ]
+    },
+    {
+      "id": "cau-05",
+      "type": "graded",
+      "trap": "legitimate design",
+      "negative": true,
+      "prompt": "We randomly assigned half of new hires to an extended onboarding program and the other half to standard onboarding. The extended group had 6-point lower 12-month attrition. Can we say the program worked?",
+      "expected_output": "Random assignment licenses a causal claim. The correct response says so plainly, then notes the assumptions worth verifying (assignment integrity, attrition from the study itself, power) \u2014 it does NOT reflexively block.",
+      "assertions": [
+        "The response permits a causal interpretation",
+        "The response does NOT rewrite the finding into purely associational language",
+        "The response names assumptions worth verifying rather than blocking the claim"
+      ]
+    }
+  ]
+}
