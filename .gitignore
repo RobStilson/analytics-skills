@@ -1,0 +1,29 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# R
+.Rhistory
+.RData
+.Rproj.user/
+
+# Data artifacts — the warehouse is built, not committed, unless small
+*.duckdb.wal
+*.parquet
+!warehouse/*.duckdb
+
+# Eval run outputs
+*-workspace/
+evals/results/
