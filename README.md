@@ -98,6 +98,21 @@ Design choices worth naming:
 - **Provenance is mandatory.** Analytics has no compiler, so traceability is the
   substitute for a passing build.
 
+## The warehouse
+
+`warehouse/` holds a synthetic people-analytics warehouse for testing these
+skills: 44 tables, ~5,300 workers, five years of history, one DuckDB file with no
+server or credentials. It is deliberately messy — eleven failure modes are
+engineered in, including a leadership program whose **true causal effect is
+exactly zero** but which shows a 7-point attrition gap from selection alone.
+
+```bash
+cd warehouse && python build_warehouse.py    # reproducible, fixed seed
+```
+
+`warehouse/README.md` orients participants. `warehouse/facilitator/GROUND_TRUTH.md`
+is the answer key — **don't hand that out before a session.**
+
 ## Scope and assumptions
 
 - **Domain:** examples are workforce/HR (headcount, attrition, compensation,
