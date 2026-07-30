@@ -47,6 +47,7 @@ the answer is wrong, looks plausible, and is used without objection.
 | Define | [`question-intake`](skills/question-intake/SKILL.md) | Turns a vague request into a confirmed question spec before any SQL |
 | Build | [`warehouse-navigation`](skills/warehouse-navigation/SKILL.md) | Source-tier ladder and entity disambiguation |
 | Validate | [`adversarial-sql-review`](skills/adversarial-sql-review/SKILL.md) | Hostile checklist pass before any number is reported |
+| Validate | [`sql-reviewer`](skills/sql-reviewer/SKILL.md) | The independent reviewer's stance and evidence bar |
 | Validate | [`causal-claim-guardrail`](skills/causal-claim-guardrail/SKILL.md) | Licenses causal language by design, not by correlation size |
 | Validate | [`uncertainty-reporting`](skills/uncertainty-reporting/SKILL.md) | Denominators, intervals, small-cell suppression, multiplicity |
 | Operationalize | [`provenance-footer`](skills/provenance-footer/SKILL.md) | Standard footer so readers can judge what to trust |
@@ -55,11 +56,15 @@ the answer is wrong, looks plausible, and is used without objection.
 
 ### Reviewer personas
 
-| Persona | Asks |
-|---|---|
-| [`methodologist`](agents/methodologist.md) | Does what you measured support the claim you are making? |
-| `sql-reviewer` *(planned)* | Did the query compute what you intended? |
-| `stakeholder-translator` *(planned)* | Will the reader understand it as you intend? |
+| Persona | Asks | Loads |
+|---|---|---|
+| [`sql-reviewer`](skills/sql-reviewer/SKILL.md) | Did the query compute what you intended? | `adversarial-sql-review` |
+| [`methodologist`](skills/methodologist/SKILL.md) | Does what you measured support the claim you are making? | `causal-claim-guardrail`, `uncertainty-reporting` |
+| `stakeholder-translator` *(planned)* | Will the reader understand it as you intend? | — |
+
+Reviewer personas are thin by design: they carry the stance, the evidence bar,
+and the output format, and load the workflow skills for the actual checks. The
+checklist lives in one place.
 
 ## Skill anatomy
 
