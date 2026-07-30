@@ -33,6 +33,8 @@ Read this skill at the start of any analytics session. Then route:
 | A new or vaguely-specified question | `question-intake` |
 | A question that's clear but needs data located | `warehouse-navigation` |
 | A query written and ready to run | `adversarial-sql-review` |
+| You were spawned *as* the reviewer of someone else's query | `sql-reviewer` |
+| A finding is going to someone who will act on it | `methodologist` |
 | Output containing "drives", "impact of", "because", "leads to" | `causal-claim-guardrail` |
 | A rate, percentage, ranking, or group comparison | `uncertainty-reporting` |
 | Any answer about to be delivered to a human | `provenance-footer` |
@@ -40,6 +42,14 @@ Read this skill at the start of any analytics session. Then route:
 | A stakeholder correcting a prior answer | `correction-harvesting` |
 
 Skills compose. A typical full pass loads four or five of them.
+
+Two of these are **reviewer personas** rather than workflows. `sql-reviewer` and
+`methodologist` are what a spawned reviewer *becomes*; they carry the stance and
+the evidence bar, and load the workflow skills for the actual checks. If you are
+the author of the work, you want the workflow skill. If you are reviewing someone
+else's, you want the persona — and the two should not be the same agent in the
+same context, because a reviewer holding the author's reasoning will reproduce
+the author's assumptions.
 
 **DO NOT** route to these skills for: access requests, pipeline troubleshooting,
 dashboard outages, or questions with no data-warehouse component. Escalate those
