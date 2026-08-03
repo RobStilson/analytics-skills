@@ -56,8 +56,11 @@ that it looks plausible.
 
 `department` is the legacy label. It was never dropped and is **54% populated**.
 
-- Latest snapshot: 4,368 rows, **2,360** carry a `department` value
-- `GROUP BY department` silently drops **2,008 people**
+- Latest snapshot: 4,368 rows, **2,360** carry a `department` value — so an
+  unfiltered legacy cut drops **2,008 rows**
+- Under the standard headcount filter (Regular, Active/On Leave), the legacy cut
+  keeps 1,979 of 3,647 people — **1,668 dropped**. Quote whichever matches the
+  filter the participant actually ran; the two figures are not interchangeable.
 - Three org units (`OU-1300` Security Engineering, `OU-3300` Corporate
   Development, `OU-4200` Quality Assurance) have **no** legacy label at all —
   they were created after the migration and vanish entirely from any legacy cut
