@@ -268,6 +268,17 @@ def compare(a_path, b_path):
             print(f"{tag} file has no evaluated assertions: {pth}")
             print("Re-run that mode before comparing.")
             return 1
+    sa, sb = set(a.get("slices", {})), set(b.get("slices", {}))
+    if sa != sb:
+        print("WARNING: the two runs cover different slices.")
+        if sb - sa:
+            print(f"  only in skills run:   {', '.join(sorted(sb - sa))}")
+        if sa - sb:
+            print(f"  only in baseline run: {', '.join(sorted(sa - sb))}")
+        print("  A slice missing from one side shows as 0% there, which will look")
+        print("  like a large gain or loss that was never measured. Re-run both")
+        print("  modes over the same slices before trusting the delta.\n")
+
     if a.get("agent_model") != b.get("agent_model"):
         print(f"WARNING: different agent models — baseline "
               f"{a.get('agent_model')} vs skills {b.get('agent_model')}. "
