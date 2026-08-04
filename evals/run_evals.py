@@ -169,6 +169,14 @@ def main():
                     help=f"model under test (default: {AGENT_MODEL})")
     ap.add_argument("--grader-model", default=GRADER_MODEL,
                     help=f"model doing the grading (default: {GRADER_MODEL})")
+    ap.add_argument("--load-all", action="store_true",
+                    help="inject ALL skills for every eval instead of just the "
+                         "one under test. Measures context dilution, not skill "
+                         "quality. Kept for comparison.")
+    ap.add_argument("--repeats", type=int, default=1,
+                    help="run each eval N times and average (default: 1). "
+                         "Single runs are noisy; 3 is a reasonable minimum for "
+                         "a result you intend to quote.")
     args = ap.parse_args()
     AGENT_MODEL, GRADER_MODEL = args.agent_model, args.grader_model
 
@@ -208,15 +216,16 @@ def main():
 
     client = Anthropic()
 
-    system = SCHEMA_PREAMBLE.format(db=DB)
-    if args.mode == "skills":
-        system += "\n\n" + load_skill_text(slices)
+    base_system = SCHEMA_PREAMBLE.format(db=DB)
 
     os.makedirs(RESULTS, exist_ok=True)
     print(f"agent: {AGENT_MODEL}  |  grader: {GRADER_MODEL}  |  mode: {args.mode}")
     out = {
         "mode": args.mode, "git_sha": git_sha(), "agent_model": AGENT_MODEL,
         "grader_model": GRADER_MODEL,
+        "skill_loading": ("n/a" if args.mode == "baseline"
+                          else ("all" if args.load_all else "per-slice")),
+        "repeats": args.repeats,
         "run_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "slices": {},
     }
@@ -227,20 +236,39 @@ def main():
             continue
         evals = json.load(open(p))["evals"]
         rows = []
-        print(f"\n{skill}  [{args.mode}]")
+
+        # Load only the skill under test for this slice, unless --load-all.
+        # Loading every skill for every question is not how skills are used in
+        # production, and it measures context dilution rather than skill quality.
+        if args.mode == "skills":
+            to_load = SKILLS if args.load_all else [skill]
+            system = base_system + "\n\n" + load_skill_text(to_load)
+        else:
+            system = base_system
+
+        loaded = "none" if args.mode == "baseline" else (
+            "all 6" if args.load_all else skill)
+        print(f"\n{skill}  [{args.mode}]  skills loaded: {loaded}")
         for ev in evals:
-            resp = call_agent(client, ev["prompt"], system)
-            graded = grade(client, ev, resp)
-            passed = sum(1 for g in graded if g["verdict"] == "PASS")
+            runs = []
+            last_resp, last_graded = "", []
+            for _ in range(args.repeats):
+                resp = call_agent(client, ev["prompt"], system)
+                graded = grade(client, ev, resp)
+                runs.append(sum(1 for g in graded if g["verdict"] == "PASS"))
+                last_resp, last_graded = resp, graded
+            passed = sum(runs) / len(runs)
+            total = len(ev["assertions"])
             rows.append({
                 "id": ev["id"], "negative": ev.get("negative", False),
-                "trap": ev.get("trap"), "passed": passed,
-                "total": len(ev["assertions"]),
-                "assertions": graded, "response": resp,
+                "trap": ev.get("trap"), "passed": passed, "total": total,
+                "runs": runs, "assertions": last_graded, "response": last_resp,
             })
-            mark = "OK " if passed == len(ev["assertions"]) else "   "
+            mark = "OK " if passed == total else "   "
             tag = " [neg]" if ev.get("negative") else ""
-            print(f"  {mark} {ev['id']}  {passed}/{len(ev['assertions'])}{tag}")
+            spread = f"  runs={runs}" if args.repeats > 1 else ""
+            shown = f"{passed:.1f}" if args.repeats > 1 else f"{int(passed)}"
+            print(f"  {mark} {ev['id']}  {shown}/{total}{tag}{spread}")
         out["slices"][skill] = rows
 
     tot = sum(r["total"] for s in out["slices"].values() for r in s)
@@ -278,6 +306,15 @@ def compare(a_path, b_path):
         print("  A slice missing from one side shows as 0% there, which will look")
         print("  like a large gain or loss that was never measured. Re-run both")
         print("  modes over the same slices before trusting the delta.\n")
+
+    if a.get("skill_loading") != b.get("skill_loading") and \
+       "n/a" not in (a.get("skill_loading"), b.get("skill_loading")):
+        print(f"WARNING: different skill-loading strategies — "
+              f"{a.get('skill_loading')} vs {b.get('skill_loading')}. "
+              f"Not comparable.\n")
+    if (a.get("repeats", 1) == 1 and b.get("repeats", 1) == 1):
+        print("NOTE: single run per eval. Individual evals flip on rephrasing; "
+              "treat slice-level deltas as directional.\n")
 
     if a.get("agent_model") != b.get("agent_model"):
         print(f"WARNING: different agent models — baseline "
