@@ -1,14 +1,23 @@
 # Analytics Skills — Python dependencies
 #
+# Run from the REPO ROOT (not from evals/ or warehouse/):
 #   pip install -r requirements.txt
+#
+# From a subdirectory, point at the parent:
+#   pip install -r ..\requirements.txt        (Windows)
+#   pip install -r ../requirements.txt         (macOS/Linux)
 #
 # Some systems (Debian/Ubuntu with externally-managed Python) need:
 #   pip install -r requirements.txt --break-system-packages
 
+# Python 3.9+ works. The month-end frequency alias differs across pandas
+# versions and build_warehouse.py detects which one applies, so an older
+# pandas on 3.9 is fine.
+
 # Warehouse: building and querying
 duckdb>=1.0
-pandas>=2.0
-numpy>=1.24
+pandas>=1.5
+numpy>=1.21
 
-# Eval runner only — not needed for verify.py or the warehouse
+# Eval runner only — not needed for verify.py or querying the warehouse
 anthropic>=0.40

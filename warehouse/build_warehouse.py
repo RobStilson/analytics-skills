@@ -278,9 +278,18 @@ def build_job_records(df):
     return pd.DataFrame(recs)
 
 
+def _month_end_freq():
+    """'ME' since pandas 2.2; 'M' before that. Python 3.9 may pin an older pandas."""
+    try:
+        pd.date_range("2023-01-31", "2023-03-31", freq="ME")
+        return "ME"
+    except ValueError:
+        return "M"
+
+
 def build_snapshot(df):
     """CANONICAL headcount source: one row per worker per month-end."""
-    months = pd.date_range("2023-01-31", AS_OF, freq="ME")
+    months = pd.date_range("2023-01-31", AS_OF, freq=_month_end_freq())
     legacy_map = {o[0]: o[3] for o in ORG_UNITS}
 
     rows = []
