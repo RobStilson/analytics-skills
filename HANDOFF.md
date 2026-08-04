@@ -111,6 +111,21 @@ rather than Python-fluent — that is the participant the design most likely fai
 
 ---
 
+## Setup failures seen in the wild
+
+Both hit during a real session, both now handled:
+
+1. **`pip` and `python` were different interpreters.** Packages installed to a
+   Microsoft Store Python 3.9 while scripts ran under a newer Python. The
+   traceback's `~~~~^^` markers gave it away — those are 3.11+. Fix is always
+   `python -m pip install`, never bare `pip`.
+2. **Missing dependency produced a raw traceback** from five entry points.
+
+`check_setup.py` now catches both before they cost anyone time. This is the
+strongest argument for a mandatory pre-work setup check: if the author of the
+repo hit two environment failures in one sitting, participants arriving cold
+will hit more.
+
 ## Environment
 
 Container resets between sessions. `/home/claude/analytics-skills` does not

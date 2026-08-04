@@ -98,6 +98,18 @@ Design choices worth naming:
 - **Provenance is mandatory.** Analytics has no compiler, so traceability is the
   substitute for a passing build.
 
+## Setup check
+
+```bash
+python check_setup.py
+```
+
+Verifies the interpreter, packages, warehouse integrity, and API key, and prints
+the exact fix command for anything that fails. It catches the two failures that
+waste the most time: a `pip` that installs into a different Python than the one
+running your scripts (common on Windows), and a `.duckdb` file truncated in
+transfer.
+
 ## The warehouse
 
 `warehouse/` holds a synthetic people-analytics warehouse for testing these
