@@ -255,7 +255,7 @@ def main():
     with open(path, "w") as f:
         json.dump(out, f, indent=2)
 
-    print(f"\n{ps}/{tot} assertions passed ({100*ps//tot})")
+    print(f"\n{ps}/{tot} assertions passed ({100*ps/tot:.0f}%)")
     print(f"-> {path}")
     return 0
 
