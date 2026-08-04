@@ -9,12 +9,15 @@ loads only when needed.
 |---|---|---|
 | `domain-doc-template.md` | Fill-in skeleton for a per-domain reference doc | **Ready** |
 | `EXAMPLE-headcount.md` | Worked example against the warehouse — deliberately incomplete | **Ready** |
-| `analysis-patterns.md` | Retention curves, rate decomposition, cohort construction, funnel analysis | Not yet written |
+| `analysis-patterns.md` | Cohort construction, retention/censoring, rate decomposition, funnels, distributions | **Ready** |
 | `eval-writing-guide.md` | How to write an eval that discriminates and does not drift | Not yet written |
 | `analytics-definition-of-done.md` | The standing bar every delivered analysis clears | Not yet written |
 
-`analysis-patterns.md` is the highest-value remaining gap: it is the least
-organization-specific content in the pack and therefore the most reusable.
+`eval-writing-guide.md` is the highest-value remaining gap.
+
+All SQL in these docs is executed against the warehouse by
+`references/verify_sql.py` — run it after any edit. Confirmed to catch injected
+errors, so a pass means something.
 
 ## Using the template
 
