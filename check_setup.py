@@ -144,7 +144,7 @@ else:
         from anthropic import Anthropic
         print(f"         {DIM}testing a live call...{RESET}")
         Anthropic().messages.create(
-            model="claude-sonnet-4-6", max_tokens=8,
+            model="claude-sonnet-5", max_tokens=8,
             messages=[{"role": "user", "content": "Reply with the word ok."}])
         check("API key works", True, "test call succeeded")
     except ImportError:

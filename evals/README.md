@@ -72,6 +72,16 @@ Both were confirmed to fire by deliberately corrupting the ground truth.
 
 **The ablation** — needs `ANTHROPIC_API_KEY`:
 
+Defaults to `claude-sonnet-5` for both agent and grader. Override with
+`--agent-model` / `--grader-model`. Model IDs change; verify against the
+[models docs](https://platform.claude.com/docs/en/about-claude/models/overview)
+before a run that matters.
+
+A stronger agent may pass more *baseline* evals unaided, compressing the
+measured delta. That is a real result about where skills add value for a given
+model, not a flaw in the measurement — report it rather than switching to a
+weaker model to manufacture a bigger number.
+
 ```bash
 python run_evals.py --mode baseline    # skills off
 python run_evals.py --mode skills      # skills on

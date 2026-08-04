@@ -42,8 +42,17 @@ SKILLS = [
     "causal-claim-guardrail", "adversarial-sql-review", "provenance-footer",
 ]
 
-GRADER_MODEL = "claude-sonnet-4-6"
-AGENT_MODEL = "claude-sonnet-4-6"
+# Defaults. Override with --agent-model / --grader-model.
+#
+# Sonnet 5 is the current Sonnet and is markedly stronger at agentic work, which
+# makes it the fairer test: it is the model people would actually use. Note the
+# tradeoff — a stronger agent may pass more BASELINE evals unaided, compressing
+# the measured delta. That is a real result, not a problem with the measurement.
+#
+# Sonnet 5 rejects non-default sampling parameters (temperature, top_p) and does
+# not accept manual thinking budgets. This script sets none of those.
+AGENT_MODEL = "claude-sonnet-5"
+GRADER_MODEL = "claude-sonnet-5"
 
 SCHEMA_PREAMBLE = """You have read-only access to a DuckDB warehouse of people
 analytics data at {db}. Answer the user's question using it. You may run SQL.
@@ -151,11 +160,17 @@ def git_sha():
 
 
 def main():
+    global AGENT_MODEL, GRADER_MODEL
     ap = argparse.ArgumentParser()
     ap.add_argument("--mode", choices=["baseline", "skills"], default="skills")
     ap.add_argument("--skill", help="run one slice only")
     ap.add_argument("--compare", nargs=2, metavar=("BASELINE", "SKILLS"))
+    ap.add_argument("--agent-model", default=AGENT_MODEL,
+                    help=f"model under test (default: {AGENT_MODEL})")
+    ap.add_argument("--grader-model", default=GRADER_MODEL,
+                    help=f"model doing the grading (default: {GRADER_MODEL})")
     args = ap.parse_args()
+    AGENT_MODEL, GRADER_MODEL = args.agent_model, args.grader_model
 
     if args.compare:
         return compare(*args.compare)
@@ -183,6 +198,7 @@ def main():
         system += "\n\n" + load_skill_text(slices)
 
     os.makedirs(RESULTS, exist_ok=True)
+    print(f"agent: {AGENT_MODEL}  |  grader: {GRADER_MODEL}  |  mode: {args.mode}")
     out = {
         "mode": args.mode, "git_sha": git_sha(), "agent_model": AGENT_MODEL,
         "grader_model": GRADER_MODEL,
