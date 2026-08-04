@@ -1,4 +1,4 @@
-# Handoff — 2026-07-30
+# Handoff — 2026-08-03
 
 **Project:** Vibe Analytics workshop + `analytics-skills` repo
 **Conference:** 2026-09-29 · **Hard deadline:** 2026-09-12 (pre-work must ship)
@@ -19,6 +19,7 @@ reference-only rule, artifacts below are pointed at, not summarized.
 | `warehouse/facilitator/GROUND_TRUTH.md` | Answer key — every trap, verified figures. **Do not distribute pre-session.** |
 | `evals/README.md` | Eval design, what's tested vs. untested |
 | `references/EXAMPLE-headcount.md` | The BUILD-block exercise |
+| `references/analysis-patterns.md` | The methods layer — five patterns, all SQL tested |
 
 ---
 
@@ -29,8 +30,9 @@ traps, verified) · 28 evals across 6 slices with an offline drift verifier ·
 domain-doc template + deliberately incomplete worked example.
 
 **Not done:** the ablation has never been run — `evals/run_evals.py` has not
-executed a single API call. `references/analysis-patterns.md` unwritten. No
-participant materials (pre-work, slides, worksheets). No dry run.
+executed a single API call. No participant materials (pre-work, slides,
+worksheets). No dry run. `eval-writing-guide.md` and
+`analytics-definition-of-done.md` still unwritten.
 
 **Status line for the repo, unchanged:** testable, not tested.
 
@@ -58,6 +60,9 @@ executing queries:
 2. A department-drop figure that was wrong
 3. A correct figure (2,008) quoted next to a query whose filter made 1,668 the
    right answer — right number, wrong context
+4. A distributions example implying the warehouse showed salary skew, when the
+   synthetic data is symmetric (mean 111,460, median 111,500). The doc now says
+   so explicitly rather than implying a demonstration it does not make.
 
 This is the pack's own thesis landing on its authors, repeatedly. It is the
 single best story for the workshop, and it is worth telling on stage.
@@ -69,17 +74,28 @@ memory, including into documentation that looks reviewed.**
 
 ## Next session
 
-1. `references/analysis-patterns.md` — retention curves, rate decomposition,
-   cohort construction, funnel analysis. Biggest remaining content gap and the
-   most reusable thing in the pack.
-2. Participant materials — pre-work email, failure-demo script, BUILD worksheet.
-3. Slides.
+1. **Participant materials** — pre-work email, failure-demo script, BUILD
+   worksheet, slides. This is now the critical path.
+2. `references/eval-writing-guide.md` if time allows. Not load-bearing for the
+   workshop.
 
 Blocked on Rob: run the ablation (`--mode baseline`, then `--mode skills`,
-then `--compare`). ~$2–5 in tokens. Expect bugs; it has never run.
+then `--compare`). ~$2–5 in tokens. Expect bugs; it has never run. Do this
+before slides are drafted — a small delta changes what the slides claim.
 
-Open question for Rob: does the conference have a materials deadline? If slides
-are due 2–4 weeks ahead, the 2026-09-12 freeze moves earlier.
+**Schedule (materials due 2026-09-16):**
+
+| By | What |
+|---|---|
+| Sep 5 | All content and slides drafted |
+| Sep 8–12 | Dry run, 3–4 people, own laptops. Last chance to change anything. |
+| Sep 15 | Pre-work sent |
+| Sep 16 | Materials due |
+| Sep 17–26 | Rehearse only. Chase missing API keys. |
+| Sep 29 | Workshop |
+
+Recruit dry-run participants in August. At least one should be SQL/BI-native
+rather than Python-fluent — that is the participant the design most likely fails.
 
 ---
 
@@ -104,6 +120,8 @@ reads this file first.
 DuckDB is not preinstalled — `pip install duckdb --break-system-packages`.
 Rebuild the warehouse from the pinned seed before touching evals:
 `cd warehouse && python build_warehouse.py`, then `cd evals && python verify.py`
-(expect: 112 pinned values match, 28 evals, 5 negative).
+(expect: 112 pinned values match, 28 evals, 5 negative). Also run
+`python references/verify_sql.py` (expect: PASS) — it executes every SQL block
+in the reference docs.
 
 No credentials are stored anywhere in this repo, and none should be.
