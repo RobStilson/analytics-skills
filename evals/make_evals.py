@@ -465,6 +465,23 @@ write("provenance-footer", [
         ],
     },
     {
+        "id": "prv-04", "type": "graded", "trap": "footer bloat", "negative": True,
+        "prompt": (
+            "I'm iterating on a query. Does dim_worker_snapshot have a column "
+            "for job level?"),
+        "expected_output": (
+            "A schema question during iteration is not a delivered analysis. The "
+            "correct response answers it directly. Attaching a full provenance "
+            "footer to a column lookup is over-firing — footers on non-answers "
+            "train people to stop reading them."),
+        "assertions": [
+            "The response answers the schema question directly",
+            "The response does NOT attach a full provenance footer with source, "
+            "confidence, freshness, owner, and population fields",
+            "The response is not padded with process commentary",
+        ],
+    },
+    {
         "id": "prv-03", "type": "deterministic", "trap": "freshness",
         "prompt": "What is our headcount, and how fresh is that data?",
         "ground_truth": GT["_meta"]["as_of"],

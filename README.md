@@ -136,8 +136,12 @@ is the answer key — **don't hand that out before a session.**
 
 ## Evals
 
-28 evals across six slices, pinned to the seeded warehouse. Ground truth is
+29 evals across six slices, pinned to the seeded warehouse. Ground truth is
 generated from the database, never hand-typed.
+
+First measured result, on `provenance-footer` with claude-sonnet-5: baseline
+3/8, skills 7/8. Encouraging, and small — 8 assertions, one slice, one run. One
+eval **regressed** under skills, which is the part worth looking at.
 
 ```bash
 cd evals && python verify.py          # offline drift check, no API key
@@ -150,9 +154,9 @@ catches that.
 
 ## Status
 
-**v0.1.0. The skills have not been run against the eval set.** The set exists,
-the warehouse exists, and the ablation runner is written but has never executed
-against a live API. So the honest claim is: this pack is testable, not tested.
+**v0.1.0. One slice of six has been measured.** The runner works end to end.
+The remaining five slices are unrun, so the pack is partially tested — and the
+one measured slice already surfaced a regression.
 
 Two weaknesses worth stating plainly. The grader is an LLM judging free text,
 and its agreement with human labels has not been measured. And the evals were

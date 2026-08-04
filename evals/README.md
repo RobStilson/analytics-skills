@@ -1,6 +1,6 @@
 # Evals
 
-28 evals across six skill slices, pinned to a fixed warehouse seed.
+29 evals across six skill slices, pinned to a fixed warehouse seed.
 
 Without these, every claim this pack makes about improving accuracy is an
 assertion. With them, it is a measurement — or a refutation, which is equally
@@ -25,7 +25,7 @@ evals/
 | `causal-claim-guardrail` | 5 | 1 |
 | `question-intake` | 4 | 1 |
 | `adversarial-sql-review` | 4 | 1 |
-| `provenance-footer` | 3 | 0 |
+| `provenance-footer` | 4 | 1 |
 
 ## No figure is hand-typed
 
@@ -37,7 +37,27 @@ documentation that looks reviewed — including, during the drafting of this rep
 a facilitator answer key whose performance-tier table was invented wholesale and
 looked entirely plausible until the numbers were run.
 
-## Negative tests are 18% of the set, deliberately
+## First measured result
+
+One slice, `provenance-footer`, run on claude-sonnet-5:
+
+| | baseline | skills | delta |
+|---|---|---|---|
+| Assertions passed | 3/8 (38%) | 7/8 (88%) | **+50 pts** |
+
+Read that with the caution it deserves: **8 assertions, one slice, one run.**
+A 50-point delta is four assertions changing. Directional, not conclusive.
+
+The more useful detail is that `prv-03` **regressed**, 2/2 to 1/2. Baseline read
+the freshness date from the data unaided; with the skill loaded it did not. That
+is a candidate defect in the skill — plausibly the footer template inviting a
+convention-filled field instead of a lookup — and it surfaced in the first eight
+assertions ever run.
+
+A headline delta that hides a regression is the failure this pack exists to
+prevent. Report both.
+
+## Negative tests are 21% of the set, deliberately
 
 A skill that fires on everything is indistinguishable from a skill that works.
 Each slice carries at least one eval the skill should NOT change:
@@ -49,9 +69,14 @@ Each slice carries at least one eval the skill should NOT change:
 | `cau-05` | strip causal language from a genuine randomized design |
 | `rev-04` | manufacture findings on a correct query |
 | `nav-06` | invent data for an empty table |
+| `prv-04` | footer a schema lookup during iteration |
 
 `cau-05` is the important one. A causal guardrail that blocks a randomized
 rollout has stopped being a guardrail and become an obstacle.
+
+`prv-04` was added after the first real run: `provenance-footer` originally had
+no negative test, so its ablation reported `0/0` on over-firing and could not
+have detected it. Every slice now has at least one.
 
 ## Running
 
@@ -102,7 +127,8 @@ structure as the contribution and the specifics as a starting point.
 **The grader is an LLM judging free text.** Assertions are written to be
 objectively checkable, but "the response flags the estimate as unstable" still
 requires judgment. Grader agreement has not been measured against human labels.
-Treat single-run deltas under about 10 points as noise until it has.
+Treat single-run deltas under about 10 points as noise until it has, and treat
+any single-slice result as directional regardless of size.
 
 **The evals were written by the same author as the skills.** They test what the
 skills were built to do, which is the weakest form of validation available.
