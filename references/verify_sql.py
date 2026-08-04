@@ -7,7 +7,12 @@ else must run. Offline, free, fast — wire it into CI alongside evals/verify.py
 
 Usage:  python references/verify_sql.py
 """
-import re, sys, pathlib, duckdb
+import re, sys, pathlib
+
+try:
+    import duckdb
+except ImportError:
+    sys.exit("\nMissing dependency: duckdb\n  Install it with:  pip install duckdb\n")
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 DB = ROOT / "warehouse" / "people_analytics.duckdb"

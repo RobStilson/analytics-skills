@@ -166,7 +166,14 @@ def main():
     try:
         from anthropic import Anthropic
     except ImportError:
-        print("pip install anthropic")
+        print("Missing dependency: anthropic")
+        print("  Install it with:  pip install anthropic")
+        return 1
+    try:
+        import duckdb  # noqa: F401 — needed by the SQL tool
+    except ImportError:
+        print("Missing dependency: duckdb")
+        print("  Install it with:  pip install duckdb")
         return 1
 
     client = Anthropic()

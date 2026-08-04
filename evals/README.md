@@ -55,6 +55,10 @@ rollout has stopped being a guardrail and become an obstacle.
 
 ## Running
 
+```bash
+pip install -r ../requirements.txt
+```
+
 **Drift check** — offline, free, fast:
 
 ```bash

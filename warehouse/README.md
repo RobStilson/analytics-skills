@@ -14,8 +14,14 @@ Nobody has written the reference documentation. That is the exercise.
 ## Setup
 
 ```bash
-pip install duckdb            # or: pip install duckdb --break-system-packages
+pip install -r ../requirements.txt
+# or just: pip install duckdb
+# Some systems need: pip install duckdb --break-system-packages
 ```
+
+If a script reports a missing dependency, it will tell you exactly what to
+install. If it reports the warehouse file is too small, the `.duckdb` file did
+not survive transfer — rebuild it with `python build_warehouse.py`.
 
 ```python
 import duckdb

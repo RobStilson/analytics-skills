@@ -1,0 +1,14 @@
+# Analytics Skills — Python dependencies
+#
+#   pip install -r requirements.txt
+#
+# Some systems (Debian/Ubuntu with externally-managed Python) need:
+#   pip install -r requirements.txt --break-system-packages
+
+# Warehouse: building and querying
+duckdb>=1.0
+pandas>=2.0
+numpy>=1.24
+
+# Eval runner only — not needed for verify.py or the warehouse
+anthropic>=0.40

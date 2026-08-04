@@ -15,8 +15,16 @@ Usage:
 
 import json
 import os
+import sys
 import hashlib
-import duckdb
+
+try:
+    import duckdb
+except ImportError:
+    sys.exit(
+        "\nMissing dependency: duckdb\n"
+        "  Install it with:  pip install duckdb\n"
+        "  (Some systems need: pip install duckdb --break-system-packages)\n")
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.path.join(HERE, "..", "warehouse", "people_analytics.duckdb")

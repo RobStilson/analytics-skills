@@ -22,9 +22,17 @@ Reproducible: fixed seed. Rebuild with `python build_warehouse.py`.
 """
 
 import os
-import numpy as np
-import pandas as pd
-import duckdb
+import sys
+
+try:
+    import numpy as np
+    import pandas as pd
+    import duckdb
+except ImportError as e:
+    sys.exit(
+        f"\nMissing dependency: {e.name or e}\n"
+        "  Install them with:  pip install duckdb pandas numpy\n"
+        "  (Some systems need: pip install duckdb pandas numpy --break-system-packages)\n")
 
 SEED = 20260730
 rng = np.random.default_rng(SEED)

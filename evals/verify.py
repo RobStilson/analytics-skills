@@ -51,10 +51,26 @@ def main():
         print("FAIL  ground_truth.json missing — run make_ground_truth.py")
         return 1
 
+    db = os.path.join(HERE, "..", "warehouse", "people_analytics.duckdb")
+    if not os.path.exists(db):
+        print("FAIL  warehouse not found at warehouse/people_analytics.duckdb")
+        print("      Rebuild it:  cd ../warehouse && python build_warehouse.py")
+        return 1
+    if os.path.getsize(db) < 1_000_000:
+        print(f"FAIL  warehouse file is only {os.path.getsize(db):,} bytes —")
+        print("      expected ~6.8 MB. It likely did not survive transfer.")
+        print("      Rebuild it:  cd ../warehouse && python build_warehouse.py")
+        return 1
+
     committed = json.load(open(gt_path))
 
     # Regenerate from the live warehouse into a temp file, then compare.
-    import make_ground_truth
+    try:
+        import make_ground_truth
+    except ImportError as e:
+        print(f"FAIL  cannot import make_ground_truth: {e}")
+        print("      Install dependencies:  pip install duckdb")
+        return 1
     tmp = gt_path + ".verify"
     orig_out = make_ground_truth.OUT
     make_ground_truth.OUT = tmp
