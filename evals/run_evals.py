@@ -175,6 +175,21 @@ def main():
     if args.compare:
         return compare(*args.compare)
 
+    if args.skill:
+        if args.skill not in SKILLS:
+            print(f"Unknown slice: {args.skill!r}\n")
+            print("Available slices:")
+            for s_ in SKILLS:
+                print(f"  {s_}")
+            import difflib
+            near = difflib.get_close_matches(args.skill, SKILLS, n=1, cutoff=0.6)
+            if near:
+                print(f"\nDid you mean:  --skill {near[0]}")
+            return 1
+        slices = [args.skill]
+    else:
+        slices = SKILLS
+
     if not os.getenv("ANTHROPIC_API_KEY"):
         print("ANTHROPIC_API_KEY not set.")
         return 1
@@ -192,7 +207,7 @@ def main():
         return 1
 
     client = Anthropic()
-    slices = [args.skill] if args.skill else SKILLS
+
     system = SCHEMA_PREAMBLE.format(db=DB)
     if args.mode == "skills":
         system += "\n\n" + load_skill_text(slices)
@@ -228,19 +243,35 @@ def main():
             print(f"  {mark} {ev['id']}  {passed}/{len(ev['assertions'])}{tag}")
         out["slices"][skill] = rows
 
+    tot = sum(r["total"] for s in out["slices"].values() for r in s)
+    ps = sum(r["passed"] for s in out["slices"].values() for r in s)
+
+    if tot == 0:
+        print("\nNo assertions were evaluated — nothing was run.")
+        print("Not writing a results file; an empty run is a failure, not a 0% score.")
+        return 1
+
     path = os.path.join(RESULTS, f"{args.mode}.json")
     with open(path, "w") as f:
         json.dump(out, f, indent=2)
 
-    tot = sum(r["total"] for s in out["slices"].values() for r in s)
-    ps = sum(r["passed"] for s in out["slices"].values() for r in s)
-    print(f"\n{ps}/{tot} assertions passed ({100*ps//tot if tot else 0}%)")
+    print(f"\n{ps}/{tot} assertions passed ({100*ps//tot})")
     print(f"-> {path}")
     return 0
 
 
 def compare(a_path, b_path):
     a, b = json.load(open(a_path)), json.load(open(b_path))
+    for tag, d, pth in (("baseline", a, a_path), ("skills", b, b_path)):
+        n = sum(r["total"] for s in d.get("slices", {}).values() for r in s)
+        if n == 0:
+            print(f"{tag} file has no evaluated assertions: {pth}")
+            print("Re-run that mode before comparing.")
+            return 1
+    if a.get("agent_model") != b.get("agent_model"):
+        print(f"WARNING: different agent models — baseline "
+              f"{a.get('agent_model')} vs skills {b.get('agent_model')}. "
+              f"The delta is not attributable to skills alone.\n")
     print(f"{'slice':<28}{'baseline':>10}{'skills':>10}{'delta':>10}")
     print("-" * 58)
     ta = tb = na = nb = 0
