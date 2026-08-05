@@ -29,8 +29,10 @@ import json
 import os
 import re
 import sys
+import time
 import datetime
 import subprocess
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -104,7 +106,7 @@ def run_sql(query):
         con.close()
 
 
-def call_agent(client, prompt, system, max_turns=8):
+def call_agent(client, prompt, system, max_turns=6):
     """Agentic loop with a single SQL tool."""
     tools = [{
         "name": "run_sql",
@@ -177,6 +179,11 @@ def main():
                     help="run each eval N times and average (default: 1). "
                          "Single runs are noisy; 3 is a reasonable minimum for "
                          "a result you intend to quote.")
+    ap.add_argument("--workers", type=int, default=8,
+                    help="parallel API calls (default: 8). Lower it if you hit "
+                         "rate limits.")
+    ap.add_argument("--max-turns", type=int, default=6,
+                    help="cap on agent SQL turns per eval (default: 6)")
     args = ap.parse_args()
     AGENT_MODEL, GRADER_MODEL = args.agent_model, args.grader_model
 
@@ -197,6 +204,24 @@ def main():
         slices = [args.skill]
     else:
         slices = SKILLS
+
+    n_evals = 0
+    for sk in slices:
+        pth = os.path.join(HERE, sk, "evals.json")
+        if os.path.exists(pth):
+            n_evals += len(json.load(open(pth))["evals"])
+    n_runs = n_evals * args.repeats
+    # 60s/run, calibrated against an observed sequential run (~103s/run
+    # measured). Agent loops with several SQL turns dominate; the grader call
+    # is small by comparison.
+    est_min = n_runs * 60 / max(args.workers, 1) / 60
+    print(f"{n_evals} evals x {args.repeats} repeat(s) = {n_runs} runs, "
+          f"{args.workers} at a time")
+    print(f"rough estimate: {est_min:.0f}-{est_min*2:.0f} min")
+    if est_min > 25:
+        print("  ^ that is a long run. Consider --repeats 1, more --workers,")
+        print("    or --skill <one-slice> for a quick check.")
+    print()
 
     if not os.getenv("ANTHROPIC_API_KEY"):
         print("ANTHROPIC_API_KEY not set.")
@@ -219,7 +244,7 @@ def main():
     base_system = SCHEMA_PREAMBLE.format(db=DB)
 
     os.makedirs(RESULTS, exist_ok=True)
-    print(f"agent: {AGENT_MODEL}  |  grader: {GRADER_MODEL}  |  mode: {args.mode}")
+    t0 = time.time()
     out = {
         "mode": args.mode, "git_sha": git_sha(), "agent_model": AGENT_MODEL,
         "grader_model": GRADER_MODEL,
@@ -249,20 +274,43 @@ def main():
         loaded = "none" if args.mode == "baseline" else (
             "all 6" if args.load_all else skill)
         print(f"\n{skill}  [{args.mode}]  skills loaded: {loaded}")
+        def one_run(ev):
+            resp = call_agent(client, ev["prompt"], system, args.max_turns)
+            graded = grade(client, ev, resp)
+            return ev["id"], sum(1 for g in graded if g["verdict"] == "PASS"), resp, graded
+
+        # Every (eval, repeat) pair is independent, so fan them all out at once.
+        jobs = [ev for ev in evals for _ in range(args.repeats)]
+        collected = {ev["id"]: [] for ev in evals}
+        last = {}
+        with ThreadPoolExecutor(max_workers=args.workers) as pool:
+            futures = {pool.submit(one_run, ev): ev for ev in jobs}
+            done_n = 0
+            for fut in as_completed(futures):
+                try:
+                    eid, npass, resp, graded = fut.result()
+                except Exception as e:
+                    eid = futures[fut]["id"]
+                    print(f"    ! {eid} errored: {str(e)[:60]}")
+                    continue
+                collected[eid].append(npass)
+                last[eid] = (resp, graded)
+                done_n += 1
+                print(f"\r    {done_n}/{len(jobs)} runs complete", end="", flush=True)
+        print()
+
         for ev in evals:
-            runs = []
-            last_resp, last_graded = "", []
-            for _ in range(args.repeats):
-                resp = call_agent(client, ev["prompt"], system)
-                graded = grade(client, ev, resp)
-                runs.append(sum(1 for g in graded if g["verdict"] == "PASS"))
-                last_resp, last_graded = resp, graded
-            passed = sum(runs) / len(runs)
+            runs = collected[ev["id"]]
             total = len(ev["assertions"])
+            if not runs:
+                print(f"      {ev['id']}  no successful runs")
+                continue
+            passed = sum(runs) / len(runs)
+            resp, graded = last.get(ev["id"], ("", []))
             rows.append({
                 "id": ev["id"], "negative": ev.get("negative", False),
                 "trap": ev.get("trap"), "passed": passed, "total": total,
-                "runs": runs, "assertions": last_graded, "response": last_resp,
+                "runs": runs, "assertions": graded, "response": resp,
             })
             mark = "OK " if passed == total else "   "
             tag = " [neg]" if ev.get("negative") else ""
@@ -283,12 +331,31 @@ def main():
     with open(path, "w") as f:
         json.dump(out, f, indent=2)
 
-    print(f"\n{ps}/{tot} assertions passed ({100*ps/tot:.0f}%)")
+    print(f"\n{ps}/{tot} assertions passed ({100*ps/tot:.0f}%) "
+          f"in {(time.time()-t0)/60:.1f} min")
     print(f"-> {path}")
     return 0
 
 
+def _resolve(p):
+    """Accept a path relative to CWD, or a bare name under evals/results/."""
+    if os.path.exists(p):
+        return p
+    alt = os.path.join(RESULTS, os.path.basename(p))
+    if os.path.exists(alt):
+        return alt
+    print(f"Results file not found: {p}")
+    if os.path.isdir(RESULTS):
+        have = sorted(f for f in os.listdir(RESULTS) if f.endswith(".json"))
+        print(f"  Looked in: {RESULTS}")
+        print(f"  Found there: {', '.join(have) if have else '(none)'}")
+    else:
+        print(f"  No results directory yet — run a mode first.")
+    sys.exit(1)
+
+
 def compare(a_path, b_path):
+    a_path, b_path = _resolve(a_path), _resolve(b_path)
     a, b = json.load(open(a_path)), json.load(open(b_path))
     for tag, d, pth in (("baseline", a, a_path), ("skills", b, b_path)):
         n = sum(r["total"] for s in d.get("slices", {}).values() for r in s)
