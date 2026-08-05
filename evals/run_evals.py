@@ -106,7 +106,37 @@ def run_sql(query):
         con.close()
 
 
-def call_agent(client, prompt, system, max_turns=6):
+class FatalAPIError(Exception):
+    """An account-level problem. Every subsequent request will fail the same
+    way, so abort the whole run instead of burning through the batch."""
+
+
+FATAL_MARKERS = (
+    "credit balance is too low",
+    "authentication_error",
+    "invalid x-api-key",
+    "permission_error",
+    "Your account has been disabled",
+)
+
+
+def _with_retry(fn, tries=3):
+    """Retry transient API failures. Account problems abort; 400s fail fast."""
+    for i in range(tries):
+        try:
+            return fn()
+        except Exception as e:
+            msg = str(e)
+            if any(m.lower() in msg.lower() for m in FATAL_MARKERS):
+                raise FatalAPIError(msg)
+            transient = any(k in msg for k in
+                            ("429", "overloaded", "529", "timeout", "Connection"))
+            if not transient or i == tries - 1:
+                raise
+            time.sleep(2 ** i * 2)
+
+
+def call_agent(client, prompt, system, max_turns=10):
     """Agentic loop with a single SQL tool."""
     tools = [{
         "name": "run_sql",
@@ -118,13 +148,15 @@ def call_agent(client, prompt, system, max_turns=6):
         },
     }]
     messages = [{"role": "user", "content": prompt}]
+    exhausted = True
     for _ in range(max_turns):
-        resp = client.messages.create(
+        resp = _with_retry(lambda: client.messages.create(
             model=AGENT_MODEL, max_tokens=3000,
-            system=system, tools=tools, messages=messages)
+            system=system, tools=tools, messages=messages))
         messages.append({"role": "assistant", "content": resp.content})
         tool_uses = [b for b in resp.content if getattr(b, "type", None) == "tool_use"]
         if not tool_uses:
+            exhausted = False
             break
         results = []
         for tu in tool_uses:
@@ -133,7 +165,33 @@ def call_agent(client, prompt, system, max_turns=6):
                 "content": run_sql(tu.input.get("query", "")),
             })
         messages.append({"role": "user", "content": results})
-    return "\n".join(b.text for b in resp.content if getattr(b, "type", None) == "text")
+
+    text = "\n".join(b.text for b in resp.content if getattr(b, "type", None) == "text")
+
+    # Turn budget ran out mid-tool-use: the last message is all tool_use blocks
+    # and carries no answer. Give one final chance to answer with what it has,
+    # WITHOUT tools, rather than returning an empty string that the grader would
+    # score as a legitimate zero.
+    if exhausted and not text.strip():
+        # The loop ends on a user turn carrying tool_result blocks, so a new
+        # user message would put two user turns in a row (400). Append the nudge
+        # to that existing turn instead. And keep `tools` in the request: the
+        # history contains tool_use blocks, and omitting tools is also a 400.
+        nudge = ("You have run out of query budget. Answer now, using what you "
+                 "have already learned. Do not request more queries.")
+        if messages and messages[-1]["role"] == "user" and \
+           isinstance(messages[-1]["content"], list):
+            messages[-1]["content"] = list(messages[-1]["content"]) + [
+                {"type": "text", "text": nudge}]
+        else:
+            messages.append({"role": "user", "content": nudge})
+        final = client.messages.create(
+            model=AGENT_MODEL, max_tokens=3000, system=system,
+            tools=tools, messages=messages)
+        text = "\n".join(b.text for b in final.content
+                         if getattr(b, "type", None) == "text")
+
+    return text
 
 
 def grade(client, ev, response):
@@ -179,11 +237,14 @@ def main():
                     help="run each eval N times and average (default: 1). "
                          "Single runs are noisy; 3 is a reasonable minimum for "
                          "a result you intend to quote.")
-    ap.add_argument("--workers", type=int, default=8,
-                    help="parallel API calls (default: 8). Lower it if you hit "
-                         "rate limits.")
-    ap.add_argument("--max-turns", type=int, default=6,
-                    help="cap on agent SQL turns per eval (default: 6)")
+    ap.add_argument("--workers", type=int, default=6,
+                    help="parallel API calls (default: 6). Each carries the "
+                         "skill text as a system prompt, so high concurrency "
+                         "pushes hard on rate limits. Raise cautiously.")
+    ap.add_argument("--max-turns", type=int, default=10,
+                    help="cap on agent SQL turns per eval (default: 10). Too "
+                         "low and skills that add process steps run out of "
+                         "budget before answering.")
     args = ap.parse_args()
     AGENT_MODEL, GRADER_MODEL = args.agent_model, args.grader_model
 
@@ -243,6 +304,20 @@ def main():
 
     base_system = SCHEMA_PREAMBLE.format(db=DB)
 
+    # Preflight with a single tiny call. Cheaper than discovering an account
+    # problem 174 requests in.
+    try:
+        client.messages.create(model=AGENT_MODEL, max_tokens=4,
+                               messages=[{"role": "user", "content": "ok"}])
+    except Exception as e:
+        msg = str(e)
+        print("Preflight call failed — not starting the run.\n")
+        print(f"  {msg[:400]}\n")
+        if any(m.lower() in msg.lower() for m in FATAL_MARKERS):
+            print("This is an account-level problem, not a code problem.")
+        return 1
+    print("preflight ok\n")
+
     os.makedirs(RESULTS, exist_ok=True)
     t0 = time.time()
     out = {
@@ -276,22 +351,43 @@ def main():
         print(f"\n{skill}  [{args.mode}]  skills loaded: {loaded}")
         def one_run(ev):
             resp = call_agent(client, ev["prompt"], system, args.max_turns)
+            if not resp.strip():
+                # Grading an empty string produces a zero that looks like a
+                # measurement and is not one. Surface it instead.
+                raise RuntimeError(
+                    "empty response after exhausting the turn budget — "
+                    "raise --max-turns")
             graded = grade(client, ev, resp)
             return ev["id"], sum(1 for g in graded if g["verdict"] == "PASS"), resp, graded
 
         # Every (eval, repeat) pair is independent, so fan them all out at once.
         jobs = [ev for ev in evals for _ in range(args.repeats)]
         collected = {ev["id"]: [] for ev in evals}
-        last = {}
+        last, errors = {}, {}
         with ThreadPoolExecutor(max_workers=args.workers) as pool:
             futures = {pool.submit(one_run, ev): ev for ev in jobs}
             done_n = 0
             for fut in as_completed(futures):
                 try:
                     eid, npass, resp, graded = fut.result()
+                except FatalAPIError as e:
+                    print(f"\r\nABORTING — account-level API error:\n")
+                    print(f"  {str(e)[:400]}\n")
+                    print("Every remaining request would fail the same way, so")
+                    print("the run is stopping instead of issuing hundreds more.")
+                    print("Fix the account issue, then run:")
+                    print("  python check_setup.py    (makes one live call)")
+                    pool.shutdown(wait=False, cancel_futures=True)
+                    return 1
                 except Exception as e:
                     eid = futures[fut]["id"]
-                    print(f"    ! {eid} errored: {str(e)[:60]}")
+                    errors.setdefault(eid, []).append(str(e))
+                    # Print the first full error; later ones are usually the
+                    # same cause and truncating hid the diagnosis last time.
+                    if len(errors) == 1 and len(errors[eid]) == 1:
+                        print(f"\r    ! {eid} FAILED:\n      {str(e)[:600]}")
+                    else:
+                        print(f"\r    ! {eid}: {str(e)[:70]}")
                     continue
                 collected[eid].append(npass)
                 last[eid] = (resp, graded)
@@ -303,7 +399,9 @@ def main():
             runs = collected[ev["id"]]
             total = len(ev["assertions"])
             if not runs:
-                print(f"      {ev['id']}  no successful runs")
+                print(f"      {ev['id']}  NO VALID RUNS — excluded from scoring")
+                for m in errors.get(ev["id"], [])[:1]:
+                    print(f"           {m}")
                 continue
             passed = sum(runs) / len(runs)
             resp, graded = last.get(ev["id"], ("", []))
@@ -314,7 +412,10 @@ def main():
             })
             mark = "OK " if passed == total else "   "
             tag = " [neg]" if ev.get("negative") else ""
+            nerr = len(errors.get(ev["id"], []))
             spread = f"  runs={runs}" if args.repeats > 1 else ""
+            if nerr:
+                spread += f"  ({nerr} failed run{'s' if nerr > 1 else ''})"
             shown = f"{passed:.1f}" if args.repeats > 1 else f"{int(passed)}"
             print(f"  {mark} {ev['id']}  {shown}/{total}{tag}{spread}")
         out["slices"][skill] = rows
@@ -328,6 +429,12 @@ def main():
         return 1
 
     path = os.path.join(RESULTS, f"{args.mode}.json")
+    if os.path.exists(path):
+        # A completed run is data. Keep it rather than silently replacing it.
+        stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        prev = os.path.join(RESULTS, f"{args.mode}.{stamp}.json")
+        os.replace(path, prev)
+        print(f"   (previous run archived as {os.path.basename(prev)})")
     with open(path, "w") as f:
         json.dump(out, f, indent=2)
 
@@ -390,18 +497,42 @@ def compare(a_path, b_path):
     print(f"{'slice':<28}{'baseline':>10}{'skills':>10}{'delta':>10}")
     print("-" * 58)
     ta = tb = na = nb = 0
+    incomparable = []
     for skill in sorted(set(a["slices"]) | set(b["slices"])):
         ra, rb = a["slices"].get(skill, []), b["slices"].get(skill, [])
-        pa, sa = sum(r["passed"] for r in ra), sum(r["total"] for r in ra)
-        pb, sb = sum(r["passed"] for r in rb), sum(r["total"] for r in rb)
-        fa = 100 * pa / sa if sa else 0
-        fb = 100 * pb / sb if sb else 0
-        print(f"{skill:<28}{fa:>9.0f}%{fb:>9.0f}%{fb-fa:>+9.0f}")
+        # Only evals present on BOTH sides can be compared. An eval that failed
+        # to run is missing data, not a zero.
+        ids_a, ids_b = {r["id"] for r in ra}, {r["id"] for r in rb}
+        both = ids_a & ids_b
+        missing = (ids_a | ids_b) - both
+        ra_c = [r for r in ra if r["id"] in both]
+        rb_c = [r for r in rb if r["id"] in both]
+        pa, sa = sum(r["passed"] for r in ra_c), sum(r["total"] for r in ra_c)
+        pb, sb = sum(r["passed"] for r in rb_c), sum(r["total"] for r in rb_c)
+        if not sa or not sb:
+            print(f"{skill:<28}{'--':>10}{'--':>10}{'no data':>10}")
+            incomparable.append((skill, sorted(missing)))
+            continue
+        fa, fb = 100 * pa / sa, 100 * pb / sb
+        flag = f"  ({len(missing)} eval(s) excluded)" if missing else ""
+        print(f"{skill:<28}{fa:>9.0f}%{fb:>9.0f}%{fb-fa:>+9.0f}{flag}")
+        if missing:
+            incomparable.append((skill, sorted(missing)))
         ta += pa; na += sa; tb += pb; nb += sb
     print("-" * 58)
-    fa = 100 * ta / na if na else 0
-    fb = 100 * tb / nb if nb else 0
-    print(f"{'TOTAL':<28}{fa:>9.0f}%{fb:>9.0f}%{fb-fa:>+9.0f}")
+    if na and nb:
+        fa, fb = 100 * ta / na, 100 * tb / nb
+        print(f"{'TOTAL':<28}{fa:>9.0f}%{fb:>9.0f}%{fb-fa:>+9.0f}")
+        print(f"{'':28}{'':>10}{'':>10}  over {na:.0f} matched assertions")
+    else:
+        print(f"{'TOTAL':<28}{'--':>10}{'--':>10}{'no data':>10}")
+
+    if incomparable:
+        print("\nINCOMPLETE — evals that did not run on both sides were excluded:")
+        for skill, miss in incomparable:
+            print(f"  {skill}: {', '.join(miss) if miss else 'entire slice'}")
+        print("\nThese are missing measurements, not zeros. Re-run the failed")
+        print("evals before quoting any number above.")
     print("\nNegative tests (skills should NOT over-fire):")
     for tag, d in (("baseline", a), ("skills", b)):
         rs = [r for s in d["slices"].values() for r in s if r["negative"]]

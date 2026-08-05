@@ -498,79 +498,85 @@ function card(s, x, y, w, h, fill) {
 {
   const s = darkSlide();
   kicker(s, "What we measured", ORANGE);
-  title(s, "The first full run came back negative", { color: PAPER });
+  title(s, "56% to 84%, across every slice", { color: PAPER });
 
-  const cw = 5.55;
-  card(s, M, 2.0, cw, 2.1, "2E3E4C");
-  s.addText("One skill loaded", {
-    x: M + 0.35, y: 2.25, w: cw - 0.7, h: 0.4,
-    fontFace: H, fontSize: 17, bold: true, color: "CBD5DD", margin: 0,
-  });
-  s.addText("+50 pts", {
-    x: M + 0.35, y: 2.75, w: cw - 0.7, h: 0.9,
-    fontFace: H, fontSize: 44, bold: true, color: TEAL, margin: 0,
+  const rows = [
+    ["uncertainty-reporting", "43%", "93%", "+50"],
+    ["provenance-footer", "39%", "82%", "+42"],
+    ["warehouse-navigation", "61%", "83%", "+23"],
+    ["question-intake", "61%", "82%", "+21"],
+    ["adversarial-sql-review", "54%", "72%", "+18"],
+    ["causal-claim-guardrail", "74%", "87%", "+13"],
+  ];
+  let y = 1.75;
+  rows.forEach(([n, b, k, d], i) => {
+    card(s, M, y, W - 2 * M, 0.6, i % 2 === 0 ? "2E3E4C" : INK);
+    s.addText(n, {
+      x: M + 0.35, y: y + 0.13, w: 5.2, h: 0.35,
+      fontFace: "Consolas", fontSize: 14, color: "CBD5DD", margin: 0,
+    });
+    s.addText(b, {
+      x: M + 6.0, y: y + 0.13, w: 1.4, h: 0.35,
+      fontFace: B, fontSize: 14, color: MUTED, align: "right", margin: 0,
+    });
+    s.addText(k, {
+      x: M + 7.7, y: y + 0.13, w: 1.4, h: 0.35,
+      fontFace: B, fontSize: 14, color: PAPER, align: "right", margin: 0,
+    });
+    s.addText(d, {
+      x: M + 9.6, y: y + 0.12, w: 2.2, h: 0.38,
+      fontFace: H, fontSize: 16, bold: true, color: TEAL, align: "right", margin: 0,
+    });
+    y += 0.66;
   });
 
-  card(s, M + cw + 0.5, 2.0, cw, 2.1, "2E3E4C");
-  s.addText("Six skills loaded", {
-    x: M + cw + 0.85, y: 2.25, w: cw - 0.7, h: 0.4,
-    fontFace: H, fontSize: 17, bold: true, color: "CBD5DD", margin: 0,
+  s.addText("29 paired observations · mean +28 pts · 95% CI +12 to +44 · p = 0.009", {
+    x: M, y: 5.85, w: W - 2 * M, h: 0.4,
+    fontFace: B, fontSize: 15, color: "CBD5DD", margin: 0,
   });
-  s.addText("−9 pts", {
-    x: M + cw + 0.85, y: 2.75, w: cw - 0.7, h: 0.9,
-    fontFace: H, fontSize: 44, bold: true, color: ORANGE, margin: 0,
+  s.addText("Single model, single session, synthetic warehouse, authors' own evals.", {
+    x: M, y: 6.25, w: W - 2 * M, h: 0.4,
+    fontFace: B, fontSize: 13, italic: true, color: MUTED, margin: 0,
   });
-
-  s.addText("Same skills. Same model. Same warehouse. Opposite conclusions.", {
-    x: M, y: 4.35, w: W - 2 * M, h: 0.45,
-    fontFace: H, fontSize: 22, italic: true, color: PAPER, margin: 0,
-  });
-  s.addText([
-    { text: "Negative tests degraded 93% → 73%.", options: { bold: true, color: PAPER, breakLine: true } },
-    { text: "12 of 28 evals flipped by 60+ points, in both directions. Only 11 held steady.", options: { color: "CBD5DD" } },
-  ], {
-    x: M, y: 5.05, w: W - 2 * M, h: 0.9,
-    fontFace: B, fontSize: 15, margin: 0, lineSpacing: 24,
-  });
-  s.addNotes("Do not hide this. A negative first result, investigated rather than buried, is a better story than a clean win — and it is the discipline we are teaching. Ask the room what they would check first.");
+  s.addNotes("Lead with the number, then immediately give the caveats on the next slide. The mean and median agree (+28.2 / +27.8), so it is not one outlier carrying the result. Say plainly that this is one run by the people who wrote the skills.");
 }
 
-// ================================================================ 13 THE DIAGNOSIS
+// ================================================================ 13 THE CAVEATS
 {
   const s = lightSlide();
-  kicker(s, "The diagnosis");
-  title(s, "How you load skills matters more than what's in them");
+  kicker(s, "What the headline hides");
+  title(s, "Three things that belong with that number");
 
-  card(s, M, 1.85, W - 2 * M, 1.5, "FBEDE8");
-  s.addText("11,253 tokens of instructions attached to a 17-token question.", {
-    x: M + 0.4, y: 2.1, w: W - 2 * M - 0.8, h: 0.45,
-    fontFace: H, fontSize: 24, bold: true, color: ORANGE, margin: 0,
+  card(s, M, 1.8, W - 2 * M, 1.35, "FBEDE8");
+  s.addText("Skills over-fire. Negative tests fell 87% to 70%.", {
+    x: M + 0.4, y: 2.02, w: W - 2 * M - 0.8, h: 0.42,
+    fontFace: H, fontSize: 22, bold: true, color: ORANGE, margin: 0,
   });
-  s.addText("Every skill file injected into every question — roughly 600x the size of the ask.", {
-    x: M + 0.4, y: 2.6, w: W - 2 * M - 0.8, h: 0.5,
+  s.addText("The worst case attaches a full provenance footer to a schema lookup. A real cost, not noise.", {
+    x: M + 0.4, y: 2.5, w: W - 2 * M - 0.8, h: 0.45,
     fontFace: B, fontSize: 15, color: "8C4430", margin: 0,
   });
 
-  const cols = [
-    ["What we measured", "Context dilution. The agent trying to satisfy six sets of instructions at once — hedging clean queries, interrogating specified questions."],
-    ["What we meant to measure", "Skill quality. Whether the right instructions, delivered to the right question, improve the answer."],
-    ["The fix", "Progressive disclosure. The short description stays in context; the body loads only when it matches the task."],
-  ];
-  let x = M;
-  const cw = 3.85;
-  cols.forEach(([h, d]) => {
-    card(s, x, 3.6, cw, 2.35, TINT);
-    s.addText(h, {
-      x: x + 0.3, y: 3.85, w: cw - 0.6, h: 0.4,
-      fontFace: H, fontSize: 16, bold: true, color: INK, margin: 0,
-    });
-    s.addText(d, {
-      x: x + 0.3, y: 4.3, w: cw - 0.6, h: 1.5,
-      fontFace: B, fontSize: 13, color: SLATE, margin: 0,
-    });
-    x += cw + 0.42;
+  card(s, M, 3.3, W - 2 * M, 1.35, TINT);
+  s.addText("Five runs died on the turn budget — and not at random.", {
+    x: M + 0.4, y: 3.52, w: W - 2 * M - 0.8, h: 0.42,
+    fontFace: H, fontSize: 22, bold: true, color: INK, margin: 0,
   });
-  s.addNotes("This is the most valuable finding in the project. The room will arrive assuming the hard part is writing good instructions. The data says the hard part is routing — getting the right instructions to the right question and keeping the rest out. That is the argument for a thin router plus reference docs that load on demand.");
+  s.addText("Four of the five were in the slice reporting the largest gain. Losing the hardest runs biases the estimate upward.", {
+    x: M + 0.4, y: 4.0, w: W - 2 * M - 0.8, h: 0.45,
+    fontFace: B, fontSize: 15, color: SLATE, margin: 0,
+  });
+
+  card(s, M, 4.8, W - 2 * M, 1.5, "E6F2EE");
+  s.addText("It survives the sensitivity analysis anyway.", {
+    x: M + 0.4, y: 5.02, w: W - 2 * M - 0.8, h: 0.42,
+    fontFace: H, fontSize: 22, bold: true, color: TEAL, margin: 0,
+  });
+  s.addText("Drop every eval with a failed run: +22. Assume every lost run scored zero: +23. The honest headline is roughly +20 to +28 with a measurable over-firing cost.", {
+    x: M + 0.4, y: 5.5, w: W - 2 * M - 0.8, h: 0.65,
+    fontFace: B, fontSize: 15, color: "1F5F4C", margin: 0,
+  });
+  s.addNotes("This slide is the point of the workshop. Anyone can report +28. Reporting +28 alongside the over-firing cost, the non-random missing data, and a sensitivity analysis is what makes it trustworthy. Note that the censoring problem here is exactly pattern 2 in analysis-patterns.md — we hit it in our own measurement.");
 }
 
 // ================================================================ 14 FABRICATION

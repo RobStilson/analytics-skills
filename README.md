@@ -139,9 +139,14 @@ is the answer key — **don't hand that out before a session.**
 29 evals across six slices, pinned to the seeded warehouse. Ground truth is
 generated from the database, never hand-typed.
 
-First measured result, on `provenance-footer` with claude-sonnet-5: baseline
-3/8, skills 7/8. Encouraging, and small — 8 assertions, one slice, one run. One
-eval **regressed** under skills, which is the part worth looking at.
+Full ablation on claude-sonnet-5: **56% → 84%**, all six slices positive.
+Treated as 29 paired observations, mean +28.2 pts, 95% CI +12.0 to +44.3.
+
+Two things belong with that number. Negative tests fell 87% → 70% — the skills
+over-fire, and that cost is real. And five runs died on the agent turn budget,
+four of them in the slice reporting the largest gain, so the estimate is
+optimistic. Under the worst-case assumption the effect is +22.8. See
+`evals/README.md`.
 
 ```bash
 cd evals && python verify.py          # offline drift check, no API key
@@ -154,9 +159,11 @@ catches that.
 
 ## Status
 
-**v0.1.0. One slice of six has been measured.** The runner works end to end.
-The remaining five slices are unrun, so the pack is partially tested — and the
-one measured slice already surfaced a regression.
+**v0.1.0, measured once.** One clean full ablation, single model, single
+session. The effect is positive and survives sensitivity analysis, but a single
+run on a synthetic warehouse by the skills' own author is the weakest form of
+evidence that counts as evidence at all. Independent evals are worth more than
+another skill.
 
 Two weaknesses worth stating plainly. The grader is an LLM judging free text,
 and its agreement with human labels has not been measured. And the evals were

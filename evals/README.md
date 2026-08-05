@@ -37,25 +37,53 @@ documentation that looks reviewed — including, during the drafting of this rep
 a facilitator answer key whose performance-tier table was invented wholesale and
 looked entirely plausible until the numbers were run.
 
-## First measured result
+## Measured result
 
-One slice, `provenance-footer`, run on claude-sonnet-5:
+Full ablation, claude-sonnet-5, per-slice loading, 3 repeats, 93 assertions on
+both sides.
 
-| | baseline | skills | delta |
+| Slice | Baseline | Skills | Delta |
 |---|---|---|---|
-| Assertions passed | 3/8 (38%) | 7/8 (88%) | **+50 pts** |
+| `uncertainty-reporting` | 43% | 93% | **+50** |
+| `provenance-footer` | 39% | 82% | **+42** |
+| `warehouse-navigation` | 61% | 83% | +23 |
+| `question-intake` | 61% | 82% | +21 |
+| `adversarial-sql-review` | 54% | 72% | +18 |
+| `causal-claim-guardrail` | 74% | 87% | +13 |
+| **Total** | **56%** | **84%** | **+28** |
 
-Read that with the caution it deserves: **8 assertions, one slice, one run.**
-A 50-point delta is four assertions changing. Directional, not conclusive.
+Treated as 29 paired eval-level observations: mean **+28.2**, median **+27.8**,
+95% CI **+12.0 to +44.3** — excludes zero. 17 evals improved, 5 worsened, 7 flat
+(sign test p = 0.009). Mean and median agreeing means it is not one outlier
+carrying the result.
 
-The more useful detail is that `prv-03` **regressed**, 2/2 to 1/2. Baseline read
-the freshness date from the data unaided; with the skill loaded it did not. That
-is a candidate defect in the skill — plausibly the footer template inviting a
-convention-filled field instead of a lookup — and it surfaced in the first eight
-assertions ever run.
+### The three caveats that belong with the number
 
-A headline delta that hides a regression is the failure this pack exists to
-prevent. Report both.
+**Skills over-fire.** Negative tests fell 87% → 70%, mean **−16.7 pts** across
+the six. `prv-04` is the worst at −67: `provenance-footer` attaches a full footer
+to a schema lookup during iteration. That is a real cost, not noise, and it
+partly offsets the gains.
+
+**Five runs died on the turn budget, and not at random.** Four of the five were
+in `uncertainty-reporting` — the slice reporting the largest gain. `unc-01`'s
++100 rests on a single surviving run. Losing the runs where the agent worked
+hardest is informative censoring, exactly the pattern
+`references/analysis-patterns.md` warns about.
+
+**Sensitivity analysis:**
+
+| Restriction | n | Mean | 95% CI |
+|---|---|---|---|
+| All evals | 29 | +28.2 | +12.0 to +44.3 |
+| Excluding evals with any failed run | 25 | +22.0 | +5.3 to +38.7 |
+| Assuming every lost run scored 0 | 29 | +22.8 | +8.0 to +37.6 |
+
+The finding survives every restriction, but the honest headline is **"roughly
++20 to +28 points, with a measurable over-firing cost"** rather than +28 flat.
+
+**Four evals regressed:** `prv-04` (−67), `nav-03` (−33), `int-03` (−22),
+`rev-01` (−17). Two are negative tests, which is the over-firing showing up
+again.
 
 ## Negative tests are 21% of the set, deliberately
 
@@ -94,6 +122,56 @@ python verify.py               # exit 1 on drift
 `verify.py` catches two failure modes: the warehouse no longer producing the
 figures the evals assert, and an eval quoting a number that traces to nothing.
 Both were confirmed to fire by deliberately corrupting the ground truth.
+
+### A harness bug worth knowing about
+
+The first full run scored `warehouse-navigation` at zero across nav-01 to nav-04,
+nine runs, perfectly consistent. That was not the skill failing. The agent loop
+exhausted its turn budget while still issuing SQL, so the final message carried
+only tool-use blocks and no text. `call_agent` returned an empty string, and the
+grader scored it as a legitimate 0.
+
+The instrument fabricated a data point, in a harness built to detect exactly that.
+
+Fixed three ways:
+- On turn exhaustion, one final call without tools asks the agent to answer with
+  what it has
+- An empty response now raises rather than being graded, and the run is excluded
+  from scoring and reported
+- `--max-turns` default raised 6 → 10, since skills that add process steps need
+  more budget than a bare agent
+
+**Any result produced before this fix understates skills mode.** Re-run before
+quoting anything.
+
+### Before a run
+
+```bash
+python ../check_setup.py     # makes one live API call — catches credit/key problems
+```
+
+`run_evals.py` also preflights with a single tiny call and aborts on
+account-level errors (credit exhausted, bad key, disabled account) rather than
+issuing hundreds of doomed requests. Completed results are archived with a
+timestamp rather than overwritten, so a failed run cannot destroy a good one.
+
+Do **not** `rm results/*.json` before a run. The archiving handles it, and a
+completed baseline is data worth keeping.
+
+### Run times
+
+The full suite is a maintainer's tool, not a workshop activity. It fans out
+across `--workers` threads (default 8) and prints an estimate before starting.
+
+| Command | Runs | Rough time |
+|---|---|---|
+| `--skill provenance-footer` | 4 | under a minute |
+| `--mode baseline` | 29 | 4-7 min |
+| `--mode baseline --repeats 3` | 87 | 11-22 min |
+| Both modes, `--repeats 3` | 174 | 22-45 min |
+
+Sequentially, that last row took **over 2.5 hours**. If a run is taking that
+long, it is not parallelised — check that `--workers` appears in `--help`.
 
 **The ablation** — needs `ANTHROPIC_API_KEY`:
 
