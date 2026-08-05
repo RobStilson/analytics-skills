@@ -34,3 +34,10 @@ evals/*.verify
 # The tracked copy lives at warehouse/facilitator/GROUND_TRUTH.md; a stray root
 # copy would publish the workshop answer key to anyone who clones.
 /GROUND_TRUTH.md
+
+# Overlay instructions, not part of the repo
+APPLY-THIS.txt
+
+# Generated deck — rebuild with: cd workshop && node build_deck.js
+vibe-analytics-workshop.pptx
+
