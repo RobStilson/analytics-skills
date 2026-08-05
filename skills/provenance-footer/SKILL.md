@@ -1,7 +1,7 @@
 ---
 name: provenance-footer
-version: 0.1.0
-description: "Attach a standard provenance footer to every analytical answer so the reader can judge how much to trust it and whether it is safe to forward. IF an analysis, number, chart, or written finding is about to be delivered to a human — THEN invoke this skill and append the footer. Use it on every answer including one-line responses in chat, because the answers most likely to be forwarded without scrutiny are the short ones. DO NOT omit it on the grounds that the answer is obvious or the requester is technical."
+version: 0.2.0
+description: "Attach a standard provenance footer to every DELIVERED analytical answer — a number, rate, ranking, or finding derived from data — so the reader can judge how much to trust it and whether it is safe to forward. IF an analysis, number, chart, or written finding is about to be delivered to a human — THEN invoke this skill and append the footer. Use it on every such answer including one-line responses in chat, because the answers most likely to be forwarded without scrutiny are the short ones. DO NOT omit it on the grounds that the answer is obvious or the requester is technical. DO NOT invoke it for a schema or metadata question — whether a table or column exists, what a table's grain is — since no analytical finding is being delivered and nothing there needs a source or a confidence level."
 ---
 
 # Provenance Footer
@@ -24,16 +24,30 @@ that number is one of the better health metrics for an analytics agent program.
 
 ## When to Use
 
-Every delivered answer. There is no exemption for:
+Every delivered **analytical answer** — something derived from querying data
+that could be forwarded, acted on, or cited: a number, a rate, a ranking, a
+chart, a written finding. There is no exemption for:
 
 - Short answers ("just the number")
 - Technical requesters
 - Answers the requester already knows
 - Chat replies as opposed to formal documents
-- Iterative back-and-forth within a session (footer the final answer at minimum)
+- Iterative back-and-forth *once a number or finding is actually delivered*
+  (footer the final answer at minimum, even mid-session)
 
-**DO NOT** attach a footer to intermediate reasoning you are not presenting as an
-answer — it becomes noise and people stop reading it.
+**DO NOT** attach a footer to intermediate reasoning you are not presenting as
+an answer — it becomes noise and people stop reading it.
+
+**DO NOT** attach a footer to a schema or metadata question — "does this table
+have column X," "what's the grain of table Y," "what tables exist for this
+domain." Those aren't analytical findings. Nothing about a source tier,
+confidence level, or population applies to a yes/no about structure, and a
+footer on one trains people to skip footers generally.
+
+**The line, precisely:** did this response deliver a number, rate, or finding
+computed from data, or did it answer a question about the data's *shape*? The
+first needs a footer. The second is a fact about the schema, not a claim about
+the world, and gets a direct answer instead.
 
 ## Process
 
@@ -114,6 +128,7 @@ will be acted on.
 | "I'll mark it High, the query was clean" | A clean query on a raw table is still a raw-table answer. Confidence describes the process, not the query. |
 | "Freshness is whatever the pipeline schedule says" | Pipelines run late and land partial. Read the max date from the result. |
 | "It clutters chat responses" | Then compress it to one line, but keep source, freshness, and confidence. Do not drop it. |
+| "They said 'I'm iterating,' and iteration isn't exempt" | Iteration isn't exempt *once a number is delivered*. "Does this column exist" delivers no number — it's a schema question wearing an iteration sentence. Answer it directly. |
 
 ## Red Flags
 
@@ -123,6 +138,7 @@ will be acted on.
 - An answer combining governed and raw sources is labeled Tier 2
 - The population line does not match the question spec
 - A Low-confidence, leadership-bound number is going out without human sign-off
+- A footer is being attached to a yes/no about whether a column or table exists
 
 ## Verification
 
