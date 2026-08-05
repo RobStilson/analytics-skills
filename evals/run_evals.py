@@ -483,9 +483,11 @@ def compare(a_path, b_path):
 
     if a.get("skill_loading") != b.get("skill_loading") and \
        "n/a" not in (a.get("skill_loading"), b.get("skill_loading")):
-        print(f"WARNING: different skill-loading strategies — "
+        print(f"NOTE: different skill-loading strategies — "
               f"{a.get('skill_loading')} vs {b.get('skill_loading')}. "
-              f"Not comparable.\n")
+              f"If that's deliberate (measuring loading strategy itself), "
+              f"this is exactly the comparison you want. If it's accidental, "
+              f"re-run one side to match.\n")
     if (a.get("repeats", 1) == 1 and b.get("repeats", 1) == 1):
         print("NOTE: single run per eval. Individual evals flip on rephrasing; "
               "treat slice-level deltas as directional.\n")

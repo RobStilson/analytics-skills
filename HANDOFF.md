@@ -1,82 +1,111 @@
-# Handoff — 2026-08-05
+# Handoff — 2026-08-05 (end of day)
 
 **Project:** Vibe Analytics workshop + `analytics-skills` repo
 **Conference:** 2026-09-29 · **Materials due:** 2026-09-16 · **Dry run must finish by:** 2026-09-12
-**Repo:** https://github.com/RobStilson/analytics-skills (public, current)
+**Repo:** https://github.com/RobStilson/analytics-skills (public)
 
-Adapted from the `handoff` skill (mattpocock/skills): that skill writes to the OS
-temp directory, but the agent's container is wiped between sessions, so the
+Adapted from the `handoff` skill (mattpocock/skills): that skill writes to the
+OS temp directory, but the agent's container is wiped between sessions, so the
 handoff lives in the repo. Reference-only — artifacts are pointed at, not
 summarized.
 
 ---
 
-## Start here
+## FIRST: two files are not yet pushed
 
-The repo is current. Clone it and read this file, then `README.md`.
+GitHub is at `855ad0c`. Two files changed locally today and have not reached
+GitHub yet:
 
-```bash
-git clone https://github.com/RobStilson/analytics-skills.git
-cd analytics-skills && pip install -r requirements.txt
-python check_setup.py                  # environment + warehouse + API key
-cd evals && python verify.py           # 112 pinned values, 29 evals, 6 negative
-cd .. && python references/verify_sql.py   # every SQL block in references/
+| File | What changed |
+|---|---|
+| `evals/run_evals.py` | Softened the skill-loading-mismatch message from "Not comparable" to a note that a deliberate strategy comparison (like `--load-all` vs per-slice) is exactly the intended use |
+| `workshop/build_deck.js` | Added the load-all isolation slide (13B) — three-part finding: accuracy, discipline, efficiency |
+
+Apply and push before doing anything else:
+
+```powershell
+cd "C:\Agentic AI\Skills\analytics-skills"
+git status          # confirm these are the only two files that differ
+git add evals/run_evals.py workshop/build_deck.js
+git commit -m "Reapply skill-loading wording fix; add load-all deck slide"
+git push
 ```
 
-All three should pass. If `verify.py` fails, the warehouse changed — rebuild from
-the pinned seed with `cd warehouse && python build_warehouse.py`.
+**Do not commit the `.pptx`.** It's deliberately gitignored — rebuild it
+locally with `cd workshop && node build_deck.js` whenever you need it.
+
+A note on how this gap happened: the wording fix was made in a session-local
+clone and handed over as a standalone download, but the clone the deck slide
+was later built from was a fresh pull from GitHub — so it didn't carry the
+fix forward, and there was no confirmation the standalone download had been
+applied. It's fixed and reapplied in this session's final state, but it's
+worth flagging as a process risk: **a fix that only exists in an ephemeral
+clone or a downloaded file, with no confirmed push, can quietly vanish.** When
+in doubt, confirm `git status` shows what's expected before moving on.
+
+---
+
+## Read these first
 
 | Path | Why |
 |---|---|
 | `README.md` | Pack overview, three failure modes, measured result |
-| `evals/README.md` | The ablation numbers and every caveat that qualifies them |
+| `evals/README.md` | Ablation numbers and every caveat that qualifies them |
 | `warehouse/facilitator/GROUND_TRUTH.md` | Answer key. **Never distribute pre-session.** |
-| `references/domain-doc-template.md` | The 45-minute BUILD-block artifact |
+| `workshop/pre-work-email.md` | Send by Sep 15; needs `[DATE]` and `[Your name]` filled in |
+| `workshop/build-worksheet.md` | The 45-min BUILD-block companion to the domain-doc template |
+| `workshop/failure-demo-script.md` | Facilitator script; two `[PASTE...]` slots need your real captured transcript |
 | `workshop/README.md` | Deck sources, and what must NOT run live |
 
 ---
 
 ## State
 
-**Done:** 11 skills · synthetic DuckDB warehouse (44 tables, 11 engineered traps)
-· 29 evals across 6 slices with an offline drift verifier · domain-doc template
-plus a deliberately incomplete worked example · analysis-patterns · 16-slide deck
-· `check_setup.py` · parallelised eval runner with preflight and fail-fast ·
-**one clean full ablation.**
+**Done:** 11 skills (including the `prv-04` over-firing fix) · synthetic
+warehouse (44 tables, 11 traps) · 29 evals, 6 slices, offline drift verifier ·
+domain-doc template + worked example · analysis-patterns · 17-slide deck ·
+`check_setup.py` · parallelised eval runner with preflight, fail-fast, and
+archiving · **three complete, clean ablation arms** (baseline, per-slice
+skills, load-all skills) · pre-work email · BUILD worksheet · failure-demo
+script.
 
-**Not done:** no participant materials (pre-work email, BUILD worksheet, failure-
-demo script). No dry run. `prv-04` over-firing unfixed. `--load-all` arm not run.
-`eval-writing-guide.md` unwritten.
+**Not done:** the demo script's two transcript placeholders are unfilled. No
+dry run. `references/eval-writing-guide.md` and
+`references/analytics-definition-of-done.md` unwritten (not load-bearing).
+Full deck read-through not yet done end-to-end.
 
-**Status:** measured once. The effect is real and survives sensitivity analysis,
-but it is a single session on a synthetic warehouse using the authors' own evals.
+**Status:** materials-complete for the repo and facilitator side. What's left
+is almost entirely rehearsal and real-people testing, not more building.
 
 ---
 
-## The measured result
+## The measured results — three arms, fully reconciled
 
-Full ablation, claude-sonnet-5, per-slice loading, 3 repeats, 93 assertions both
-sides. **56% → 84%.** All six slices positive (+13 to +50).
+All three ran clean after the `prv-04` fix (0 lost runs in baseline or
+per-slice; 4 lost to turn-budget exhaustion in load-all only).
 
-As 29 paired eval-level observations: mean **+28.2**, median **+27.8**, 95% CI
-**+12.0 to +44.3**, sign test p = 0.009.
+| Comparison | Total | Paired mean | 95% CI |
+|---|---|---|---|
+| Baseline → per-slice skills | 56% → 83% | +26.3 | +12.5 to +40.2 (excludes zero) |
+| Baseline → load-all skills | 56% → 81% | +23.3 | +9.2 to +37.3 (excludes zero) |
+| **Per-slice → load-all** (isolation) | 83% → 81% | **−3.1** | **−10.3 to +4.2 (crosses zero)** |
 
-Three caveats that belong with it, all on deck slide 13:
+The isolation is the important row. Same skills, same model, same warehouse —
+only the loading strategy changed. **Raw task accuracy shows no measurable
+difference.** The real cost of loading everything shows up elsewhere:
 
-1. **Skills over-fire.** Negative tests fell 87% → 70%, mean −16.7. `prv-04` at
-   −67 is the worst: a full provenance footer attached to a schema lookup.
-2. **Five runs died on the turn budget, not at random.** Four of five were in
-   `uncertainty-reporting`, the highest-gaining slice. Informative censoring —
-   the exact pattern `references/analysis-patterns.md` warns about, hit in our
-   own measurement.
-3. **Sensitivity:** dropping evals with any failed run gives +22.0; assuming
-   every lost run scored zero gives +22.8. The defensible headline is
-   **"roughly +20 to +28 with a measurable over-firing cost."**
+- **Discipline:** negative-test pass rate, monotonic — 87% (baseline) → 83%
+  (per-slice) → 74% (load-all)
+- **Efficiency:** 4 runs died on the turn budget under load-all; 0 under
+  per-slice or baseline
 
-An earlier run showed −9 and was invalid: the runner injected all six SKILL.md
-bodies into every question (11,253 tokens against a 17-token ask). Fixed to
-per-slice loading. `--load-all` preserves the old behavior, and running it as a
-third arm would turn the routing argument into a measurement.
+The honest framing, now on deck slide 13B: *loading everything doesn't break
+accuracy, it breaks discipline* — a sharper and more defensible claim than the
+original inference (drawn from a broken harness run showing −9) that dilution
+tanks accuracy outright.
+
+`prv-04` specifically: pre-fix `[1,1,1]` → post-fix `[3,3,3]`, exactly matching
+baseline. Fixed with zero cost to `prv-01`/`prv-02` (stayed at ceiling).
 
 ---
 
@@ -84,47 +113,48 @@ third arm would turn the routing argument into a measurement.
 
 - **Skills are markdown, not Python.** Solves the mixed-fluency problem.
 - **One workflow live**, everything else as take-home reference.
-- **Reviewer personas stay thin** — stance and evidence bar; they load workflow skills.
+- **Reviewer personas stay thin** — stance and evidence bar; load workflow skills.
 - **Warehouse ships messy with no reference docs.** Writing one is the exercise.
 - **Ground truth is generated, never hand-typed.**
 - **The full eval suite never runs live.** Numbers go on slides beforehand.
+- **Mean and median can diverge — report both.** They agreed at +28.2/+27.8 in
+  one run and split to +26.3/+11.1 in another; don't lead with the mean alone.
 
 ---
 
 ## The failure mode this project keeps hitting
 
-Fabricated-but-plausible output. **Nine occurrences**, every one caught only by
-executing or reading the actual artifact:
+Fabricated-but-plausible output, or a confident claim asserted without
+checking. **Ten occurrences now**, every one caught only by executing or
+reading the actual artifact:
 
 1. An invented performance-tier table in the facilitator answer key
 2. A wrong department-drop figure
 3. A correct figure (2,008) quoted where the filter made 1,668 right
 4. A distributions example implying skew in symmetric synthetic data
 5. A `0/0` eval result written to disk and reported as a 0% score
-6. A 12s/run time estimate, invented, off by ~8x — cost a 2.5-hour wait
+6. A 12s/run time estimate, invented, off by ~8x
 7. An empty agent response graded as a legitimate 0/6
-8. A `+22` delta computed by totalling 93 baseline assertions against 48 skills
+8. A `+22` delta computed by totalling mismatched assertion counts
 9. A confident root-cause diagnosis built on an 80-char truncated error, wrong
+10. A wording fix made in an ephemeral clone, handed over as a download with
+    no confirmed push, silently absent from the next session's working copy
 
-**Standing rule: run the query, read the artifact. Never assert a number or a
-diagnosis from memory or inference, including into documentation that looks
-reviewed.** Nine for nine, same cause.
+**Standing rule: run the query, read the artifact, confirm the push. Never
+assert a number, a diagnosis, or a file's state from memory or inference.**
+Ten for ten, same root cause: substituting a plausible belief for a checked fact.
 
 ---
 
 ## Next session, in order
 
-1. **Pre-work email.** Highest value and longest lead. Must include
-   `check_setup.py`, a copy-pasteable setup block, and a two-week lead time.
-   Four environment failures hit during development — participants arriving cold
-   will hit more. Include "add API credit and verify it."
-2. **BUILD-block worksheet.** 45 minutes against `references/domain-doc-template.md`.
-   Timing, prompts, and what "done" looks like.
-3. **Failure-demo script.** Deck slide 8 still describes the before/after rather
-   than showing it. Real text now exists in `evals/results/*.json` — `prv-01`
-   going 0/4 → 4/4 is the strongest opening available.
-4. **Fix `prv-04` over-firing**, then re-run that slice to confirm. ~2 min.
-5. **`--load-all` arm.** ~15 min, makes the routing argument concrete.
+1. **Push the two files above.** Nothing else matters until this is done.
+2. **Fill the failure-demo script's transcript placeholders** from your own
+   `evals/results/baseline.json` and `results/skills.json` (`prv-01`).
+3. **Full deck read-through**, start to finish, out loud, timed.
+4. **Recruit dry-run participants** (3–4 people, Aug) if not already done — at
+   least one SQL/BI-native rather than Python-fluent.
+5. `references/eval-writing-guide.md` if time allows. Not load-bearing.
 
 **Schedule:**
 
@@ -137,36 +167,32 @@ reviewed.** Nine for nine, same cause.
 | Sep 17–26 | Rehearse only. Chase missing API keys. |
 | Sep 29 | Workshop |
 
-Recruit dry-run participants in August. At least one should be SQL/BI-native
-rather than Python-fluent — that is the participant the design most likely fails.
-
 ---
 
 ## Suggested skills for the next agent
 
 | Skill | When |
 |---|---|
-| `skill-freshness-check` | First. This file was stale within a day, twice. |
+| `skill-freshness-check` | First. This file has gone stale within a day, twice. |
 | `correction-harvesting` | Any time Rob corrects an output. Capture verbatim, then fix. |
-| `uncertainty-reporting` | Reading ablation results. It applies to our own numbers. |
-| `causal-claim-guardrail` | Any claim about what the skills caused. See fabrication 9. |
+| `uncertainty-reporting` | Reading any ablation result — applies to our own numbers. |
+| `causal-claim-guardrail` | Any claim about what the skills caused, or what caused a bug. |
 
 ---
 
 ## Setup failures seen in the wild
 
-All hit during real sessions, all now caught by `check_setup.py` or the runner's
-preflight:
+All hit during real sessions, all now caught by `check_setup.py` or the
+runner's preflight:
 
-1. **`pip` and `python` were different interpreters.** Packages went to a
-   Microsoft Store Python 3.9 while scripts ran under 3.14. The traceback's
-   `~~~~^^` markers gave it away — 3.11+ only. Always `python -m pip install`.
+1. **`pip` and `python` were different interpreters** (Store Python 3.9 vs 3.14).
 2. **A missing dependency produced a raw traceback** from five entry points.
-3. **Script run from the wrong directory.** Internal paths anchor to the script,
-   but `--compare` took shell-relative arguments.
+3. **Script run from the wrong directory**; `--compare` took shell-relative args.
 4. **A typo in `--skill` silently ran nothing** and wrote a results file.
-5. **API credit ran out mid-run**, and 174 doomed requests were issued before
+5. **API credit ran out mid-run**; 174 doomed requests were issued before
    anyone noticed. Now preflighted and aborted on the first fatal error.
+6. **`Rename-Item` failed on a path-shaped destination** — use `Move-Item` for
+   full-path-to-full-path renames, or pass a bare filename to `Rename-Item`.
 
 ---
 
@@ -178,8 +204,7 @@ directly — no uploads needed.
 DuckDB is not preinstalled: `pip install -r requirements.txt`. Rebuild the
 warehouse only if missing or corrupt (fixed seed, reproducible).
 
-Eval runs archive prior results with a timestamp rather than overwriting. Do not
-`rm results/*.json` before a run — a completed baseline is data, and one was lost
-that way.
+Eval runs archive prior results with a timestamp rather than overwriting. Do
+not `rm results/*.json` before a run.
 
 No credentials are stored in this repo, and none should be.

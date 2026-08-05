@@ -579,6 +579,52 @@ function card(s, x, y, w, h, fill) {
   s.addNotes("This slide is the point of the workshop. Anyone can report +28. Reporting +28 alongside the over-firing cost, the non-random missing data, and a sensitivity analysis is what makes it trustworthy. Note that the censoring problem here is exactly pattern 2 in analysis-patterns.md — we hit it in our own measurement.");
 }
 
+// ================================================================ 13B THE LOAD-ALL TEST
+{
+  const s = darkSlide();
+  kicker(s, "One variable, isolated", ORANGE);
+  title(s, "Loading everything doesn't break accuracy. It breaks discipline.", { color: PAPER, size: 30 });
+
+  s.addText("Same skills, same model, same warehouse. Only the loading strategy changed: one relevant skill vs. all six, every question.", {
+    x: M, y: 1.55, w: W - 2 * M, h: 0.55,
+    fontFace: B, fontSize: 15, color: "CBD5DD", margin: 0,
+  });
+
+  const cw = 3.85;
+  const rows = [
+    ["Accuracy", "No measurable difference", "-3.1 pts  ·  95% CI -10.3 to +4.2", "Crosses zero. 8 up, 10 down, 11 flat — indistinguishable from noise.", MUTED],
+    ["Discipline", "Erodes as loading gets less targeted", "87% → 83% → 74%", "Negative-test pass rate, baseline → per-slice → load-all. Monotonic.", ORANGE],
+    ["Efficiency", "More context, more wasted turns", "4 runs lost vs. 0", "Turn-budget exhaustion under load-all. Same cap, more to wade through.", ORANGE],
+  ];
+  let x = M;
+  rows.forEach(([h, sub, stat, detail, accent]) => {
+    card(s, x, 2.35, cw, 3.9, "2E3E4C");
+    s.addText(h.toUpperCase(), {
+      x: x + 0.3, y: 2.58, w: cw - 0.6, h: 0.35,
+      fontFace: B, fontSize: 12, bold: true, charSpacing: 1.5, color: MUTED, margin: 0,
+    });
+    s.addText(sub, {
+      x: x + 0.3, y: 2.95, w: cw - 0.6, h: 0.7,
+      fontFace: H, fontSize: 17, bold: true, color: PAPER, margin: 0,
+    });
+    s.addText(stat, {
+      x: x + 0.3, y: 3.75, w: cw - 0.6, h: 0.7,
+      fontFace: H, fontSize: 24, bold: true, color: accent, margin: 0,
+    });
+    s.addText(detail, {
+      x: x + 0.3, y: 4.55, w: cw - 0.6, h: 1.5,
+      fontFace: B, fontSize: 13, color: "CBD5DD", margin: 0,
+    });
+    x += cw + 0.42;
+  });
+
+  s.addText("The routing argument isn't “dilution makes the model dumber.” It's “dilution makes the model less careful about when to apply what it knows.”", {
+    x: M, y: 6.55, w: W - 2 * M, h: 0.6,
+    fontFace: H, fontSize: 16, italic: true, color: PAPER, margin: 0,
+  });
+  s.addNotes("This is the sharper, more defensible version of the routing argument. The earlier broken run suggested loading everything tanks accuracy outright (-9) -- that was a harness bug, not a finding. The clean isolation shows something more interesting and more true: raw task performance barely moves, but the agent's judgment about when a rule applies degrades measurably, and it burns more of its own turn budget doing so. That is a better argument for a thin router than a scarier, less accurate one would have been.");
+}
+
 // ================================================================ 14 FABRICATION
 {
   const s = lightSlide();
