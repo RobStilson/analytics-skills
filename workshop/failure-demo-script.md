@@ -9,24 +9,33 @@ live demo doesn't cooperate. Assume it won't, and you'll be fine either way.
 
 ---
 
-## Before you run this for real people: fill in the blanks
+## The captured transcript below
 
-This script has two placeholder blocks marked **[PASTE YOUR CAPTURED RESPONSE
-HERE]**. Those are not written for you, on purpose — inventing sample dialogue
-and presenting it as a real transcript is exactly the failure mode this whole
-pack exists to prevent, and it would be a strange way to open this workshop.
+The two responses in Parts 1 and 2 are real — pulled from the per-slice
+ablation run captured 2026-08-05, not invented. Inventing sample dialogue and
+presenting it as a real transcript would be exactly the failure mode this
+whole pack exists to prevent, and a strange way to open this workshop.
 
-You already have the real thing. Pull it from your own ablation run:
+**Re-capture before the actual workshop if you can** — a fresher transcript
+from a dry run is better than one from early development, and the model or
+warehouse may have moved on by September. Same commands, run from `evals/`:
 
 ```powershell
-cd evals
 python -c "import json; d=json.load(open('results/baseline.json')); print(next(r['response'] for r in d['slices']['provenance-footer'] if r['id']=='prv-01'))"
-python -c "import json; d=json.load(open('results/skills.json'));  print(next(r['response'] for r in d['slices']['provenance-footer'] if r['id']=='prv-01'))"
+python -c "import json; d=json.load(open('results/skills-perslice.json')); print(next(r['response'] for r in d['slices']['provenance-footer'] if r['id']=='prv-01'))"
 ```
 
-Copy the two outputs into the placeholders below **and** onto a backup slide
-(see "If the live demo fails," below). Do this at least once during your dry
-run, not for the first time the morning of.
+Use `skills-perslice.json`, not `skills.json` — the latter gets overwritten
+by whichever mode you ran most recently and may not be the per-slice result
+this script's talking points are written around. Check with:
+
+```powershell
+python -c "import json; d=json.load(open('results/skills-perslice.json')); print(d.get('skill_loading'))"
+```
+
+Should print `per-slice`. If you re-capture, update both code blocks below
+**and** take fresh screenshots for the backup slide (see "If the live demo
+fails," below).
 
 ---
 
@@ -87,11 +96,18 @@ qualification. Read it out loud, then ask the room:
 Let a few people answer. Someone will say "where did it come from" or "is that
 current." Good — that's the setup for what's next.
 
-**[PASTE YOUR CAPTURED "NO SKILL" RESPONSE HERE]**
+**Here's what was actually captured** (baseline, no skill, per-slice run,
+2026-08-05):
 
 ```
-<the actual response text from results/baseline.json, prv-01>
+**4,368** active employees.
 ```
+
+That number is real, and it's the wrong-but-plausible answer this warehouse
+was built to produce — it's the count *including* contingent and intern
+workers, not the canonical Regular-only figure (3,647). It looks completely
+fine on its own. Nobody in the room can tell it's off just by reading it,
+which is exactly the point you're about to make.
 
 ### Part 2 — with the skill (3–4 min)
 
@@ -104,19 +120,54 @@ word for word.
 level, and a stated population — attached *despite* the "I'm in a hurry"
 framing. Read the footer out loud, slowly. That's the part that lands.
 
-**[PASTE YOUR CAPTURED "WITH SKILL" RESPONSE HERE]**
+**Here's what actually happened when this was captured** (per-slice run,
+2026-08-05), same prompt, word for word, skill loaded:
 
 ```
-<the actual response text from results/skills.json, prv-01>
+**4,368** total active/on-leave workers as of 2026-06-30 (of which 3,647 are
+Regular employees; the rest are Contingent/Intern).
+---
+**Source:** governed table — `dim_worker_snapshot`
+**Confidence:** Medium
+**Reviewed:** not reviewed
+**Freshness:** data through 2026-06-30
+**Owner:** People Data Engineering
+**Population:** All active or on-leave workers (Regular, Contingent, Intern)
+in the latest snapshot
+**Open assumptions:** "Employees" interpreted as all worker types, not just
+Regular staff — flag if you meant Regular only (3,647)
+**Caveats:** none
 ```
+
+**Read this pairing carefully before you present it — the point is subtler
+than "the skill got the right number."** It didn't. Both answers lead with
+4,368. The skill did not resolve the population ambiguity — that's a
+different skill's job (`question-intake`), not this one's.
+
+What changed is what the reader can now *do* with the answer. The bare
+version gives you a number and nothing else — you'd have to already suspect
+something was wrong to go check it. The footered version tells you, in its
+own words, that it assumed "all worker types" and names the other number you
+might have meant, unprompted. If you actually wanted Regular-only headcount,
+you catch that in the ten seconds it takes to read the Open Assumptions line
+— not three weeks later when someone reconciles it against a different
+report.
+
+Say this to the room directly:
+
+> "Notice the skill didn't magically know the answer was 3,647. It doesn't
+> know what you meant any more than the first response did. What it did was
+> tell you what it assumed, out loud, so you could catch it. That's the whole
+> game — not omniscience, disclosure."
 
 ### The turn (4–5 min)
 
-Now show the numbers, not just the vibe. Say:
+Now show the numbers, not just this one exchange. Say:
 
-> "Here's why the footer matters, concretely. This warehouse has **four
-> different plausible answers** to 'how many employees do we have,' and they're
-> all defensible if you don't ask the right questions first."
+> "This isn't a one-off ambiguity. This warehouse has **four different
+> plausible answers** to 'how many employees do we have,' and they're all
+> defensible if you don't ask the right questions first — the one you just
+> saw is only two of the four."
 
 Put these on screen or say them aloud — every one is verified against the
 actual warehouse, not estimated:
