@@ -10,20 +10,21 @@ and reading the result. You're joining that habit now, not being warned about it
 
 ---
 
-## 0. Pick your domain — 2 min
+## 0. Orient — 2 min
 
-Don't pick Headcount. It's already done as the worked example
-(`references/EXAMPLE-headcount.md`) — read it for the *shape*, not to copy it.
+Pull up your **Define worksheet** (the question spec) and your **Validate
+worksheet** (the assertions and prediction). You picked your domain back in
+Define — this block is where you find out what your question spec got right
+and wrong.
 
-| Domain | Start here | You will not be told |
-|---|---|---|
-| **Attrition** | `fct_separation`, `rpt_attrition_monthly` | Whether "a rate" means anything without picking a denominator |
-| **Compensation** | `fct_compensation` | Whether every row is in the same unit |
-| **Engagement** | `fct_engagement_survey` | Whether every wave used the same instrument |
+| Domain | Start here |
+|---|---|
+| **Attrition** | `fct_separation`, `rpt_attrition_monthly` |
+| **Compensation** | `fct_compensation` |
+| **Engagement** | `fct_engagement_survey` |
 
-If the room has more than three people, **pair up by domain** — six people
-writing one excellent Attrition doc beats six mediocre ones. Say your domain out
-loud so the facilitator can spread the room across all three.
+If you're pairing up, confirm you're both still working the same domain you
+claimed this morning.
 
 ---
 
@@ -58,6 +59,11 @@ Write the **Required Filters** table with at least two rows.
 
 This is the section a model cannot write for you, because it requires actually
 looking. Budget the most time here.
+
+**Before you query:** glance at your Validate worksheet's prediction. You
+guessed whether a plain agent would pass or fail your assertions. Keep that
+guess in mind — you're about to find out whether the trap you anticipated is
+the trap that's actually here.
 
 **The move:** find two plausible ways to answer the same simple question from
 your domain, and see if they agree.

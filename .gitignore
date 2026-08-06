@@ -41,3 +41,8 @@ APPLY-THIS.txt
 # Generated deck — rebuild with: cd workshop && node build_deck.js
 vibe-analytics-workshop.pptx
 
+# Workshop participant scratch files -- per-laptop, not meant to be committed.
+# references/<domain>.md is intentionally NOT here: that file is meant to
+# become a real PR in the Contribute block.
+evals/my-eval.json
+workshop/my-ablation-*.json

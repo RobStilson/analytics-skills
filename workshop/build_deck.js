@@ -668,10 +668,10 @@ function card(s, x, y, w, h, fill) {
   const rows = [
     ["0:00", "Why coding agents worked first", "Framing"],
     ["0:20", "The failure demo", "Watch an agent answer confidently and wrong"],
-    ["0:40", "Define — your own recurring question", "Hands on"],
+    ["0:40", "Define — pick a domain, spec the question", "Hands on"],
     ["1:00", "Validate — write the evals first", "Hands on"],
     ["1:30", "Build — author the skill", "Hands on, the main block"],
-    ["2:15", "Run the ablation", "Measure it"],
+    ["2:15", "Run YOUR ablation", "python run_my_ablation.py, ~1 min"],
     ["2:35", "Operationalize and compound", "How skills stay alive"],
     ["2:50", "Contribute and wrap", "PR to the repo"],
   ];
