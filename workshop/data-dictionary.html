@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Workshop Warehouse — Data Dictionary</title>
+<style>
+  @page { size: letter; margin: 0.6in 0.5in; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Calibri, Arial, sans-serif;
+    font-size: 9.5pt;
+    line-height: 1.45;
+    color: #22303C;
+    max-width: 8.5in;
+    margin: 0 auto;
+    padding: 0.5in;
+  }
+  h1 {
+    font-family: Cambria, Georgia, serif;
+    font-size: 18pt;
+    font-weight: 700;
+    margin-bottom: 4pt;
+    color: #22303C;
+  }
+  .subtitle {
+    font-size: 10pt;
+    color: #5A6B7A;
+    margin-bottom: 14pt;
+    border-bottom: 2px solid #E8663C;
+    padding-bottom: 8pt;
+  }
+  h2 {
+    font-family: Cambria, Georgia, serif;
+    font-size: 13pt;
+    font-weight: 700;
+    color: #E8663C;
+    margin-top: 16pt;
+    margin-bottom: 6pt;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 10.5pt;
+    font-weight: 700;
+    color: #22303C;
+    margin-top: 12pt;
+    margin-bottom: 2pt;
+    page-break-after: avoid;
+  }
+  .meta {
+    font-size: 8.5pt;
+    color: #5A6B7A;
+    margin-bottom: 4pt;
+  }
+  .meta strong { color: #22303C; font-weight: 600; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 4pt 0 10pt 0;
+    font-size: 8.5pt;
+  }
+  th {
+    text-align: left;
+    font-weight: 600;
+    color: #5A6B7A;
+    border-bottom: 1.5px solid #CBD5DD;
+    padding: 3pt 6pt;
+    font-size: 8pt;
+    text-transform: uppercase;
+    letter-spacing: 0.5pt;
+  }
+  td {
+    padding: 2.5pt 6pt;
+    border-bottom: 0.5px solid #EEF0F2;
+    vertical-align: top;
+  }
+  tr:nth-child(even) td { background: #F7F8F9; }
+  .mono { font-family: 'Consolas', 'Courier New', monospace; font-size: 8.5pt; }
+  .dim { color: #8A99A8; }
+  .warn {
+    background: #FDF3EF;
+    border-left: 3px solid #E8663C;
+    padding: 6pt 10pt;
+    margin: 6pt 0 10pt 0;
+    font-size: 8.5pt;
+  }
+  .warn strong { color: #E8663C; }
+  .note {
+    background: #EFF8F5;
+    border-left: 3px solid #2D8A72;
+    padding: 6pt 10pt;
+    margin: 6pt 0 10pt 0;
+    font-size: 8.5pt;
+  }
+  .note strong { color: #2D8A72; }
+  .domain-box {
+    display: inline-block;
+    border: 1.5px solid #CBD5DD;
+    border-radius: 4px;
+    padding: 4pt 10pt;
+    margin: 2pt 6pt 2pt 0;
+    font-size: 8.5pt;
+  }
+  .domain-box strong { font-size: 9.5pt; }
+  .empty-list {
+    columns: 3;
+    font-size: 8pt;
+    color: #8A99A8;
+    margin: 4pt 0 8pt 12pt;
+  }
+  .empty-list li { margin-bottom: 1pt; }
+  .pagebreak { page-break-before: always; }
+  .cols2 { columns: 2; column-gap: 20pt; }
+</style>
+</head>
+<body>
+
+<h1>Workshop Warehouse — Data Dictionary</h1>
+<p class="subtitle">
+  <strong>people_analytics.duckdb</strong> &nbsp;·&nbsp;
+  44 tables (16 populated, 28 empty decoys) &nbsp;·&nbsp;
+  ~5,300 workers &nbsp;·&nbsp;
+  data through 2026-06-30
+</p>
+
+<div class="note">
+  <strong>This is your map.</strong> You don't need a DuckDB prompt open to use it.
+  Every table name, column, row count, value list, and date range printed here was
+  extracted directly from the database, not typed from memory.
+</div>
+
+<div class="warn">
+  <strong>28 of these 44 tables are deliberately empty.</strong> A query against them
+  returns zero rows, silently, with no error. If you get an empty result, check this
+  sheet before assuming your query is wrong — the table itself may have no data.
+</div>
+
+<!-- ============================================================ -->
+<h2>Your Domain — Start Here</h2>
+
+<div class="domain-box"><strong>Attrition</strong><br>fct_separation · rpt_attrition_monthly</div>
+<div class="domain-box"><strong>Compensation</strong><br>fct_compensation</div>
+<div class="domain-box"><strong>Engagement</strong><br>fct_engagement_survey</div>
+
+<p style="margin-top:8pt; font-size:8.5pt; color:#5A6B7A;">
+  All three domains join to <strong>dim_worker_snapshot</strong> for headcount
+  and to <strong>dim_org_unit</strong> for org names. Start with your domain's
+  table(s) above, then use the rest of this dictionary to navigate joins.
+</p>
+
+<!-- ============================================================ -->
+<h2>Populated Tables — Full Schema</h2>
+
+<!-- dim_worker_snapshot -->
+<h3>dim_worker_snapshot</h3>
+<p class="meta"><strong>97,705 rows</strong> · 42 monthly snapshots · 2023-01-31 to 2026-06-30 · one row per worker per snapshot date</p>
+<table>
+  <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+  <tr><td class="mono">employee_number</td><td>VARCHAR</td><td>Person key — use this, not worker_id, for headcount (rehires get new worker_ids)</td></tr>
+  <tr><td class="mono">worker_id</td><td>VARCHAR</td><td>System key — unique per employment spell, NOT per human</td></tr>
+  <tr><td class="mono">snapshot_date</td><td>DATE</td><td>End of month</td></tr>
+  <tr><td class="mono">employment_status</td><td>VARCHAR</td><td><span class="mono">Active</span>, <span class="mono">On Leave</span></td></tr>
+  <tr><td class="mono">worker_type</td><td>VARCHAR</td><td><span class="mono">Regular</span>, <span class="mono">Contingent</span>, <span class="mono">Intern</span></td></tr>
+  <tr><td class="mono">org_unit_v2</td><td>VARCHAR</td><td>Current org code (joins to dim_org_unit)</td></tr>
+  <tr><td class="mono">department</td><td>VARCHAR</td><td class="dim">⚠ 54% populated — superseded by org_unit_v2. Filtering on this silently drops ~1,668 workers.</td></tr>
+  <tr><td class="mono">job_profile_id</td><td>VARCHAR</td><td>Joins to dim_job_profile</td></tr>
+  <tr><td class="mono">location_id</td><td>VARCHAR</td><td>Joins to dim_location</td></tr>
+  <tr><td class="mono">hire_date</td><td>DATE</td><td></td></tr>
+  <tr><td class="mono">manager_worker_id</td><td>VARCHAR</td><td>Self-join for org hierarchy</td></tr>
+</table>
+
+<!-- fct_separation -->
+<h3>fct_separation</h3>
+<p class="meta"><strong>926 rows</strong> · one row per separation event · 2022-07-27 to 2026-06-29</p>
+<table>
+  <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+  <tr><td class="mono">worker_id</td><td>VARCHAR</td><td></td></tr>
+  <tr><td class="mono">employee_number</td><td>VARCHAR</td><td></td></tr>
+  <tr><td class="mono">separation_date</td><td>DATE</td><td></td></tr>
+  <tr><td class="mono">separation_type</td><td>VARCHAR</td><td><span class="mono">Voluntary</span> (686), <span class="mono">Involuntary</span> (240)</td></tr>
+  <tr><td class="mono">is_regrettable</td><td>BOOLEAN</td><td><span class="mono">true</span> (231), <span class="mono">false</span> (695)</td></tr>
+  <tr><td class="mono">org_unit_v2</td><td>VARCHAR</td><td></td></tr>
+  <tr><td class="mono">worker_type</td><td>VARCHAR</td><td><span class="mono">Regular</span> (717), <span class="mono">Contingent</span> (177), <span class="mono">Intern</span> (32)</td></tr>
+  <tr><td class="mono">separation_id</td><td>VARCHAR</td><td></td></tr>
+</table>
+
+<!-- rpt_attrition_monthly -->
+<h3>rpt_attrition_monthly</h3>
+<p class="meta"><strong>270 rows</strong> · one row per org per month · 2022-07 to 2026-06</p>
+<div class="warn"><strong>Has a numerator, no denominator.</strong> Three columns: month, org_unit_v2, separations. Computing a rate from this table requires silently choosing a denominator from elsewhere.</div>
+<table>
+  <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+  <tr><td class="mono">month</td><td>DATE</td><td></td></tr>
+  <tr><td class="mono">org_unit_v2</td><td>VARCHAR</td><td></td></tr>
+  <tr><td class="mono">separations</td><td>BIGINT</td><td>Matches fct_separation counts — but gives no denominator</td></tr>
+</table>
+
+<!-- fct_compensation -->
+<h3>fct_compensation</h3>
+<p class="meta"><strong>5,294 rows</strong> · one row per worker · effective dates 2021-05 to 2026-09</p>
+<div class="warn"><strong>Three currencies present.</strong> A naive AVG(base_salary_local) mixes USD, EUR, and SGD.</div>
+<table>
+  <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+  <tr><td class="mono">comp_id</td><td>VARCHAR</td><td></td></tr>
+  <tr><td class="mono">worker_id</td><td>VARCHAR</td><td></td></tr>
+  <tr><td class="mono">effective_date</td><td>DATE</td><td></td></tr>
+  <tr><td class="mono">base_salary_local</td><td>DOUBLE</td><td>In local currency — check currency_code before averaging</td></tr>
+  <tr><td class="mono">currency_code</td><td>VARCHAR</td><td><span class="mono">USD</span> (4,291), <span class="mono">EUR</span> (516), <span class="mono">SGD</span> (487)</td></tr>
+  <tr><td class="mono">target_bonus_pct</td><td>DOUBLE</td><td></td></tr>
+  <tr><td class="mono">pay_grade</td><td>VARCHAR</td><td></td></tr>
+</table>
+
+<!-- fct_engagement_survey -->
+<h3>fct_engagement_survey</h3>
+<p class="meta"><strong>68,478 rows</strong> · one row per response per item · waves 2023-04 to 2026-04</p>
+<div class="warn"><strong>Scale changed.</strong> 2023–2024 waves use scale 1–5. 2025–2026 waves use scale 1–7. Check <span class="mono">scale_max</span> before trending.</div>
+<table>
+  <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+  <tr><td class="mono">response_id</td><td>VARCHAR</td><td></td></tr>
+  <tr><td class="mono">wave_date</td><td>DATE</td><td></td></tr>
+  <tr><td class="mono">worker_id</td><td>VARCHAR</td><td></td></tr>
+  <tr><td class="mono">item_code</td><td>VARCHAR</td><td><span class="mono">ENG01, ENG02, ENG03, GRW01, MGR01, MGR02</span></td></tr>
+  <tr><td class="mono">response_value</td><td>INTEGER</td><td>Raw response — scale varies by wave</td></tr>
+  <tr><td class="mono">scale_max</td><td>INTEGER</td><td><span class="mono">5</span> (2023–24) or <span class="mono">7</span> (2025–26)</td></tr>
+</table>
+
+<!-- dim_worker -->
+<h3>dim_worker</h3>
+<p class="meta"><strong>5,294 rows</strong> · one row per worker (current state) · hire dates 2021-02 to 2026-06</p>
+<table>
+  <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+  <tr><td class="mono">worker_id</td><td>VARCHAR</td><td></td></tr>
+  <tr><td class="mono">employee_number</td><td>VARCHAR</td><td></td></tr>
+  <tr><td class="mono">hire_date</td><td>DATE</td><td></td></tr>
+  <tr><td class="mono">worker_type</td><td>VARCHAR</td><td><span class="mono">Regular</span>, <span class="mono">Contingent</span>, <span class="mono">Intern</span></td></tr>
+  <tr><td class="mono">gender</td><td>VARCHAR</td><td></td></tr>
+  <tr><td class="mono">age_band</td><td>VARCHAR</td><td></td></tr>
+  <tr><td class="mono">location_id</td><td>VARCHAR</td><td></td></tr>
+  <tr><td class="mono">org_unit_v2</td><td>VARCHAR</td><td></td></tr>
+</table>
+
+<div class="pagebreak"></div>
+
+<!-- fct_job_record -->
+<h3>fct_job_record</h3>
+<p class="meta"><strong>12,282 rows</strong> · one row per job assignment (people with transfers have multiple rows) · 2021-02 to 2026-06</p>
+<div class="warn"><strong>Grain fan-out: 2.32× the worker count.</strong> Joining this to dim_worker without deduplication inflates counts silently.</div>
+<table>
+  <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+  <tr><td class="mono">job_record_id</td><td>VARCHAR</td><td></td></tr>
+  <tr><td class="mono">worker_id</td><td>VARCHAR</td><td>Not unique — workers with multiple assignments appear multiple times</td></tr>
+  <tr><td class="mono">employee_number</td><td>VARCHAR</td><td></td></tr>
+  <tr><td class="mono">effective_start</td><td>DATE</td><td></td></tr>
+  <tr><td class="mono">effective_end</td><td>DATE</td><td></td></tr>
+  <tr><td class="mono">job_profile_id</td><td>VARCHAR</td><td></td></tr>
+  <tr><td class="mono">org_unit_v2</td><td>VARCHAR</td><td></td></tr>
+  <tr><td class="mono">is_primary</td><td>BOOLEAN</td><td></td></tr>
+</table>
+
+<!-- fct_performance_rating -->
+<h3>fct_performance_rating</h3>
+<p class="meta"><strong>5,294 rows</strong> · one row per worker per cycle</p>
+<table>
+  <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+  <tr><td class="mono">rating_id</td><td>VARCHAR</td><td></td></tr>
+  <tr><td class="mono">worker_id</td><td>VARCHAR</td><td></td></tr>
+  <tr><td class="mono">review_cycle</td><td>VARCHAR</td><td></td></tr>
+  <tr><td class="mono">overall_rating</td><td>DOUBLE</td><td></td></tr>
+  <tr><td class="mono">manager_worker_id</td><td>VARCHAR</td><td></td></tr>
+</table>
+
+<!-- fct_program_enrollment -->
+<h3>fct_program_enrollment</h3>
+<p class="meta"><strong>1,343 rows</strong> · one row per enrollment · 2022-01 to 2026-06</p>
+<table>
+  <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+  <tr><td class="mono">enrollment_id</td><td>VARCHAR</td><td></td></tr>
+  <tr><td class="mono">worker_id</td><td>VARCHAR</td><td></td></tr>
+  <tr><td class="mono">program_name</td><td>VARCHAR</td><td><span class="mono">Emerging Leaders Program</span> (only program)</td></tr>
+  <tr><td class="mono">enrollment_date</td><td>DATE</td><td></td></tr>
+  <tr><td class="mono">nomination_source</td><td>VARCHAR</td><td><span class="mono">Manager Nomination</span>, <span class="mono">Self-Nomination</span></td></tr>
+</table>
+
+<!-- fct_tenure_award -->
+<h3>fct_tenure_award</h3>
+<p class="meta"><strong>707 rows</strong> · one row per award · 2024-02 to 2026-06</p>
+<div class="warn"><strong>Immortal time bias.</strong> Only people who stayed long enough get a 3-Year Service Award. Comparing their attrition to non-recipients is measuring survival, not the award's effect.</div>
+<table>
+  <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+  <tr><td class="mono">award_id</td><td>VARCHAR</td><td></td></tr>
+  <tr><td class="mono">worker_id</td><td>VARCHAR</td><td></td></tr>
+  <tr><td class="mono">award_name</td><td>VARCHAR</td><td></td></tr>
+  <tr><td class="mono">award_date</td><td>DATE</td><td></td></tr>
+</table>
+
+<!-- vw_active_workers -->
+<h3>vw_active_workers</h3>
+<p class="meta"><strong>4,368 rows</strong> · a view, not a base table</p>
+<div class="warn"><strong>Includes all worker types</strong> — Regular, Contingent, and Intern. This is the "wrong but plausible" headcount if you want Regular-only (3,647).</div>
+
+<!-- rpt_headcount_daily -->
+<h3>rpt_headcount_daily</h3>
+<p class="meta"><strong>532 rows</strong> · 2023-01 to <strong>2026-02-28</strong></p>
+<div class="warn"><strong>Stale.</strong> Last refreshed 2026-02-28 — four months old. Still looks current if you don't check the date range.</div>
+<table>
+  <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+  <tr><td class="mono">as_of_date</td><td>DATE</td><td>Check MAX — it stopped at 2026-02-28</td></tr>
+  <tr><td class="mono">org_unit_v2</td><td>VARCHAR</td><td></td></tr>
+  <tr><td class="mono">headcount</td><td>BIGINT</td><td></td></tr>
+</table>
+
+<!-- dim_org_unit -->
+<h3>dim_org_unit</h3>
+<p class="meta"><strong>14 rows</strong></p>
+<table>
+  <tr><th>org_unit_v2</th><th>org_unit_name</th><th>org_group</th></tr>
+  <tr><td class="mono">OU-1000</td><td>Engineering</td><td>Technology</td></tr>
+  <tr><td class="mono">OU-1100</td><td>Platform Engineering</td><td>Technology</td></tr>
+  <tr><td class="mono">OU-1200</td><td>Data & Analytics</td><td>Technology</td></tr>
+  <tr><td class="mono">OU-1300</td><td>Security Engineering</td><td>Technology</td></tr>
+  <tr><td class="mono">OU-2000</td><td>Sales</td><td>Revenue</td></tr>
+  <tr><td class="mono">OU-2100</td><td>Customer Success</td><td>Revenue</td></tr>
+  <tr><td class="mono">OU-2200</td><td>Marketing</td><td>Revenue</td></tr>
+  <tr><td class="mono">OU-3000</td><td>Finance</td><td>Corporate</td></tr>
+  <tr><td class="mono">OU-3100</td><td>People Operations</td><td>Corporate</td></tr>
+  <tr><td class="mono">OU-3200</td><td>Legal</td><td>Corporate</td></tr>
+  <tr><td class="mono">OU-3300</td><td>Corporate Development</td><td>Corporate</td></tr>
+  <tr><td class="mono">OU-4000</td><td>Manufacturing Ops</td><td>Operations</td></tr>
+  <tr><td class="mono">OU-4100</td><td>Supply Chain</td><td>Operations</td></tr>
+  <tr><td class="mono">OU-4200</td><td>Quality Assurance</td><td>Operations</td></tr>
+</table>
+
+<!-- dim_job_profile, dim_location -->
+<h3>dim_job_profile</h3>
+<p class="meta"><strong>17 rows</strong> · job_profile_id, title, job_family, job_level</p>
+
+<h3>dim_location</h3>
+<p class="meta"><strong>7 rows</strong> · location_id, city, state_province, country</p>
+
+<h3>dim_worker_legacy</h3>
+<p class="meta"><strong>4,394 rows</strong> · legacy system extract — uses <span class="mono">department</span> (54% populated) rather than <span class="mono">org_unit_v2</span></p>
+
+<!-- ============================================================ -->
+<h2>Empty Tables (Decoys) — 28 of 44</h2>
+<p style="font-size:8.5pt; color:#5A6B7A; margin-bottom:4pt;">
+  These exist in the schema but contain zero rows. A query returns an empty result
+  with no error — the table itself is the trap, not your SQL.
+</p>
+<ul class="empty-list cols2">
+  <li>dim_absence_type</li>
+  <li>dim_benefit_plan</li>
+  <li>dim_cost_center</li>
+  <li>dim_employment_status</li>
+  <li>dim_exit_reason</li>
+  <li>dim_learning_course</li>
+  <li>dim_manager</li>
+  <li>dim_pay_component</li>
+  <li>dim_position</li>
+  <li>dim_recruiting_source</li>
+  <li>dim_survey_item</li>
+  <li>dim_talent_pool</li>
+  <li>dim_worker_type</li>
+  <li>fct_absence_event</li>
+  <li>fct_benefits_enrollment</li>
+  <li>fct_exit_survey</li>
+  <li>fct_headcount_budget</li>
+  <li>fct_internal_mobility</li>
+  <li>fct_interview_feedback</li>
+  <li>fct_learning_completion</li>
+  <li>fct_offer</li>
+  <li>fct_payroll_run</li>
+  <li>fct_recruiting_application</li>
+  <li>fct_recruiting_requisition</li>
+  <li>fct_succession_plan</li>
+  <li>fct_timeoff_balance</li>
+  <li>stg_workday_job_raw</li>
+  <li>stg_workday_worker_raw</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2>Join Map — How Tables Connect</h2>
+<table>
+  <tr><th>From</th><th>To</th><th>Join on</th><th>Watch out for</th></tr>
+  <tr><td class="mono">fct_separation</td><td class="mono">dim_worker_snapshot</td><td class="mono">employee_number</td><td>Snapshot must be filtered to the correct date — an unfiltered join fans out across all 42 monthly snapshots</td></tr>
+  <tr><td class="mono">fct_compensation</td><td class="mono">dim_worker</td><td class="mono">worker_id</td><td>Comp has one effective_date per worker; snapshot has 42 — pick the right one or get 42× inflation</td></tr>
+  <tr><td class="mono">fct_engagement_survey</td><td class="mono">dim_worker</td><td class="mono">worker_id</td><td>Only surveyed workers appear — non-respondents are absent, not NULL</td></tr>
+  <tr><td class="mono">fct_job_record</td><td class="mono">dim_worker</td><td class="mono">worker_id</td><td>Workers with transfers have multiple rows — 12,282 vs 5,294 = 2.32× fan-out</td></tr>
+  <tr><td class="mono">any table</td><td class="mono">dim_org_unit</td><td class="mono">org_unit_v2</td><td>Use org_unit_v2, never department (54% populated)</td></tr>
+</table>
+
+<p style="margin-top:16pt; font-size:8pt; color:#8A99A8; text-align:center;">
+  Generated from people_analytics.duckdb · every figure queried, not typed ·
+  github.com/RobStilson/analytics-skills
+</p>
+
+</body>
+</html>
