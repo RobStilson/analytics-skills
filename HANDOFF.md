@@ -1,210 +1,190 @@
-# Handoff — 2026-08-05 (end of day)
+# Handoff — 2026-08-11 (end of day)
 
 **Project:** Vibe Analytics workshop + `analytics-skills` repo
-**Conference:** 2026-09-29 · **Materials due:** 2026-09-16 · **Dry run must finish by:** 2026-09-12
+**Conference:** 2026-09-29 · **Materials due:** 2026-09-16 · **Dry run:** Sep 8–12
 **Repo:** https://github.com/RobStilson/analytics-skills (public)
-
-Adapted from the `handoff` skill (mattpocock/skills): that skill writes to the
-OS temp directory, but the agent's container is wiped between sessions, so the
-handoff lives in the repo. Reference-only — artifacts are pointed at, not
-summarized.
 
 ---
 
-## FIRST: two files are not yet pushed
+## FIRST: two commits not yet pushed
 
-GitHub is at `855ad0c`. Two files changed locally today and have not reached
-GitHub yet:
+GitHub is at `739c562`. Two commits with the facilitator walkthrough and
+reference doc materials are local only:
 
-| File | What changed |
+| Commit | What |
 |---|---|
-| `evals/run_evals.py` | Softened the skill-loading-mismatch message from "Not comparable" to a note that a deliberate strategy comparison (like `--load-all` vs per-slice) is exactly the intended use |
-| `workshop/build_deck.js` | Added the load-all isolation slide (13B) — three-part finding: accuracy, discipline, efficiency |
+| `eaefe68` | Compensation reference doc + walkthrough |
+| `52c3270` | All three domain walkthroughs + attrition/engagement reference docs |
 
-Apply and push before doing anything else:
+These go to `warehouse/facilitator/` — answer-key material, correctly
+quarantined from participants. Push:
 
 ```powershell
 cd "C:\Agentic AI\Skills\analytics-skills"
-git status          # confirm these are the only two files that differ
-git add evals/run_evals.py workshop/build_deck.js
-git commit -m "Reapply skill-loading wording fix; add load-all deck slide"
+git add warehouse/facilitator/
+git commit -m "Add complete facilitator safety net: all three domain walkthroughs and reference docs"
 git push
 ```
 
-**Do not commit the `.pptx`.** It's deliberately gitignored — rebuild it
-locally with `cd workshop && node build_deck.js` whenever you need it.
+---
 
-A note on how this gap happened: the wording fix was made in a session-local
-clone and handed over as a standalone download, but the clone the deck slide
-was later built from was a fresh pull from GitHub — so it didn't carry the
-fix forward, and there was no confirmation the standalone download had been
-applied. It's fixed and reapplied in this session's final state, but it's
-worth flagging as a process risk: **a fix that only exists in an ephemeral
-clone or a downloaded file, with no confirmed push, can quietly vanish.** When
-in doubt, confirm `git status` shows what's expected before moving on.
+## What was built today
+
+### Facilitator walkthrough materials (the big deliverable)
+
+Three complete step-by-step query sequences, one per workshop domain, for
+unsticking a stuck participant during the Build block. Each follows the same
+structure: numbered queries in discovery order, "what they should notice" and
+"if they don't, say this" at each step, and a ranked summary of discoverable
+Gotchas at the end.
+
+| Domain | Reference doc | Walkthrough | Queries | All verified |
+|---|---|---|---|---|
+| Attrition | `warehouse/facilitator/attrition.md` | `attrition-walkthrough.md` | 8 | ✅ |
+| Compensation | `warehouse/facilitator/compensation.md` | `compensation-walkthrough.md` | 7 | ✅ |
+| Engagement | `warehouse/facilitator/engagement.md` | `engagement-walkthrough.md` | 7 | ✅ |
+
+Plus `GROUND_TRUTH.md` (already there). Seven facilitator files total.
+
+### The Engagement domain was walked through end-to-end as a participant
+
+A full roleplay of the workshop from Define through Ablation, with Rob as a
+participant. Findings that matter for the real workshop:
+
+- **The ablation scored 2/2 baseline and 2/2 with-doc — a +0 delta** that
+  hides the most interesting result: the two responses reached **opposite
+  conclusions** about whether engagement improved (baseline said no, with-doc
+  said yes) because they used different methodologies, items, and populations.
+  Both passed the eval because the assertions measured process transparency,
+  not methodological correctness.
+- **This is a better teaching moment than a clean +50.** The reference doc
+  absolutely changed the answer — it just didn't show up in the score. A
+  third assertion (e.g. "uses Top Box scoring") would have caught it. That's
+  correction harvesting in action.
+- **The Define block worked well** — Rob's spec was sophisticated (Top Box
+  scoring for both scale lengths, 3-point threshold, ENG items only) and the
+  open-assumptions prompt surfaced real choices.
+- **The Validate prediction was half right** — he predicted PASS on "states
+  items" (correct) and FAIL on "addresses scale consistency" (wrong — baseline
+  caught the scale change on its own). Sonnet 5 is good enough to notice
+  `scale_max` without being told. That's a real finding about where skills
+  add value for a capable model.
+
+### Other materials built today
+
+- **Printable data dictionary** (`workshop/data-dictionary.html` + `.pdf`) —
+  every table, column, row count, categorical value, and date range extracted
+  from the database. Replaces the DuckDB CLI adventure that consumed 20 minutes
+  of a prior session fighting file locks, PATH issues, and smart-quote parser
+  errors. The empty-table list was verified after a first draft fabricated 13
+  of 28 table names from memory (eleventh fabrication in the project).
+- **Full facilitator guide** (`workshop/facilitator-guide.md`) — minute-by-
+  minute script for all 8 blocks, every command in both Windows and Mac/Linux,
+  error lookup table for the ablation script, emergency procedures, quick-
+  reference tables for every file participants touch.
+- **Dry-run runbook** (`workshop/dry-run-runbook.md`) — five-part operational
+  sequence: pre-session smoke test (including run_my_ablation.py's first-ever
+  live API execution, confirmed working), compressed pre-work message, block-
+  by-block facilitator notes with specific "watch for" items, a live timing
+  log, structured debrief questions, and a priority order for post-dry-run
+  fixes.
+- **`run_my_ablation.py` smoke test completed** — first live API execution
+  ever, worked cleanly. Reference doc auto-detection, preflight, baseline vs
+  with-doc comparison all confirmed.
+- **Attrition reference doc** (`attrition.md`) built with all SQL verified.
+  Gotcha 1's numerator was initially stated as "319 Regular separations" —
+  it's 319 all worker types, 241 Regular. Fixed before shipping.
 
 ---
 
-## Read these first
+## Complete state of the project
 
-| Path | Why |
-|---|---|
-| `README.md` | Pack overview, three failure modes, measured result |
-| `evals/README.md` | Ablation numbers and every caveat that qualifies them |
-| `warehouse/facilitator/GROUND_TRUTH.md` | Answer key. **Never distribute pre-session.** |
-| `workshop/pre-work-email.md` | Send by Sep 15; needs `[DATE]` and `[Your name]` filled in |
-| `workshop/build-worksheet.md` | The 45-min BUILD-block companion to the domain-doc template |
-| `workshop/failure-demo-script.md` | Facilitator script; two `[PASTE...]` slots need your real captured transcript |
-| `workshop/README.md` | Deck sources, and what must NOT run live |
+**Everything a participant touches is built, verified, and on GitHub:**
+- 11 skills (including the `prv-04` over-firing fix)
+- Synthetic warehouse (44 tables, 11 engineered traps)
+- 29 evals, 6 slices, offline drift verifier
+- Three clean ablation arms (baseline 56%, per-slice 83%, load-all 81%)
+- Pre-work email, Define/Validate/Build worksheets
+- Failure-demo script with real captured transcripts
+- Room-scale ablation script (`run_my_ablation.py`)
+- Printable data dictionary
+- 17-slide deck with real measured numbers
+- `check_setup.py`
 
----
+**Everything a facilitator needs is built and quarantined:**
+- `GROUND_TRUTH.md`
+- Three complete reference docs (attrition, compensation, engagement)
+- Three step-by-step walkthroughs (one per domain)
+- Full facilitator guide with minute-by-minute script
+- Dry-run runbook
 
-## State
-
-**Done:** 11 skills (including the `prv-04` over-firing fix) · synthetic
-warehouse (44 tables, 11 traps) · 29 evals, 6 slices, offline drift verifier ·
-domain-doc template + worked example · analysis-patterns · 17-slide deck ·
-`check_setup.py` · parallelised eval runner with preflight, fail-fast, and
-archiving · **three complete, clean ablation arms** (baseline, per-slice
-skills, load-all skills) · pre-work email · BUILD worksheet · failure-demo
-script.
-
-**Not done:** the demo script's two transcript placeholders are unfilled. No
-dry run. `references/eval-writing-guide.md` and
-`references/analytics-definition-of-done.md` unwritten (not load-bearing).
-Full deck read-through not yet done end-to-end.
-
-**Status:** materials-complete for the repo and facilitator side. What's left
-is almost entirely rehearsal and real-people testing, not more building.
+**Status: materials-complete.** What's left is rehearsal and testing against
+real people, not more building.
 
 ---
 
-## The measured results — three arms, fully reconciled
+## What's left before September 29
 
-All three ran clean after the `prv-04` fix (0 lost runs in baseline or
-per-slice; 4 lost to turn-budget exhaustion in load-all only).
-
-| Comparison | Total | Paired mean | 95% CI |
-|---|---|---|---|
-| Baseline → per-slice skills | 56% → 83% | +26.3 | +12.5 to +40.2 (excludes zero) |
-| Baseline → load-all skills | 56% → 81% | +23.3 | +9.2 to +37.3 (excludes zero) |
-| **Per-slice → load-all** (isolation) | 83% → 81% | **−3.1** | **−10.3 to +4.2 (crosses zero)** |
-
-The isolation is the important row. Same skills, same model, same warehouse —
-only the loading strategy changed. **Raw task accuracy shows no measurable
-difference.** The real cost of loading everything shows up elsewhere:
-
-- **Discipline:** negative-test pass rate, monotonic — 87% (baseline) → 83%
-  (per-slice) → 74% (load-all)
-- **Efficiency:** 4 runs died on the turn budget under load-all; 0 under
-  per-slice or baseline
-
-The honest framing, now on deck slide 13B: *loading everything doesn't break
-accuracy, it breaks discipline* — a sharper and more defensible claim than the
-original inference (drawn from a broken harness run showing −9) that dilution
-tanks accuracy outright.
-
-`prv-04` specifically: pre-fix `[1,1,1]` → post-fix `[3,3,3]`, exactly matching
-baseline. Fixed with zero cost to `prv-01`/`prv-02` (stayed at ceiling).
+| Priority | Item | Status |
+|---|---|---|
+| 1 | **Push the two pending commits** | Local only — 6 facilitator files |
+| 2 | **Send dry-run pre-work to your confirmed volunteers** | People confirmed, pre-work not sent |
+| 3 | **Run the dry run (Sep 8–12)** | The runbook is at `workshop/dry-run-runbook.md` |
+| 4 | **Fix whatever the dry run surfaces** | Unknown until it happens |
+| 5 | **Send the real pre-work email by Sep 15** | Template at `workshop/pre-work-email.md`, needs `[DATE]` and `[Your name]` |
+| 6 | **Full timed deck read-through, alone, out loud** | Not yet done |
+| 7 | **Print materials** | Data dictionary, 3 worksheets — one copy per participant plus spares |
 
 ---
 
-## Decisions worth not relitigating
+## Decisions made today
 
-- **Skills are markdown, not Python.** Solves the mixed-fluency problem.
-- **One workflow live**, everything else as take-home reference.
-- **Reviewer personas stay thin** — stance and evidence bar; load workflow skills.
-- **Warehouse ships messy with no reference docs.** Writing one is the exercise.
-- **Ground truth is generated, never hand-typed.**
-- **The full eval suite never runs live.** Numbers go on slides beforehand.
-- **Mean and median can diverge — report both.** They agreed at +28.2/+27.8 in
-  one run and split to +26.3/+11.1 in another; don't lead with the mean alone.
-
----
-
-## The failure mode this project keeps hitting
-
-Fabricated-but-plausible output, or a confident claim asserted without
-checking. **Ten occurrences now**, every one caught only by executing or
-reading the actual artifact:
-
-1. An invented performance-tier table in the facilitator answer key
-2. A wrong department-drop figure
-3. A correct figure (2,008) quoted where the filter made 1,668 right
-4. A distributions example implying skew in symmetric synthetic data
-5. A `0/0` eval result written to disk and reported as a 0% score
-6. A 12s/run time estimate, invented, off by ~8x
-7. An empty agent response graded as a legitimate 0/6
-8. A `+22` delta computed by totalling mismatched assertion counts
-9. A confident root-cause diagnosis built on an 80-char truncated error, wrong
-10. A wording fix made in an ephemeral clone, handed over as a download with
-    no confirmed push, silently absent from the next session's working copy
-
-**Standing rule: run the query, read the artifact, confirm the push. Never
-assert a number, a diagnosis, or a file's state from memory or inference.**
-Ten for ten, same root cause: substituting a plausible belief for a checked fact.
+- **SQL querying via Python scripts, not DuckDB CLI or VS Code extensions.**
+  The CLI had PATH issues, the extension had file locks, and both wasted
+  significant session time. The `explore.py` pattern (one file, `read_only=True`,
+  change the SQL string) works on every platform with no tooling beyond what
+  `requirements.txt` already installs.
+- **All facilitator materials quarantined in `warehouse/facilitator/`.** Not in
+  `references/`, where participants would see completed docs before discovering
+  the Gotchas themselves.
+- **Reference doc auto-detection uses an allowlist, not a blocklist.** A
+  blocklist approach was tried first and broke immediately — `analysis-patterns.md`
+  was silently picked up as a participant's domain doc. An allowlist of the
+  three known domain names (`attrition.md`, `compensation.md`, `engagement.md`)
+  can't be broken by future files landing in `references/`.
 
 ---
 
-## Next session, in order
+## The fabrication log — now eleven
 
-1. **Push the two files above.** Nothing else matters until this is done.
-2. **Fill the failure-demo script's transcript placeholders** from your own
-   `evals/results/baseline.json` and `results/skills.json` (`prv-01`).
-3. **Full deck read-through**, start to finish, out loud, timed.
-4. **Recruit dry-run participants** (3–4 people, Aug) if not already done — at
-   least one SQL/BI-native rather than Python-fluent.
-5. `references/eval-writing-guide.md` if time allows. Not load-bearing.
+| # | What | Caught by |
+|---|---|---|
+| 1 | Invented performance-tier table | Running the query |
+| 2 | Wrong department-drop figure | Running the query |
+| 3 | Correct figure in wrong context | Running the query |
+| 4 | Skew example with symmetric data | Running the query |
+| 5 | 0/0 result written as 0% score | Reading the output |
+| 6 | 12s/run estimate, off by ~8× | The 2.5-hour wait |
+| 7 | Empty response graded as legitimate 0/6 | Reading the JSON |
+| 8 | +22 delta from mismatched assertion counts | Reading the compare output |
+| 9 | Confident diagnosis from truncated error | The full error text |
+| 10 | Wording fix in ephemeral clone, silently lost | Checking git status |
+| 11 | 13 of 28 empty-table names fabricated | Verification script |
 
-**Schedule:**
-
-| By | What |
-|---|---|
-| Sep 5 | All content and slides drafted |
-| Sep 8–12 | Dry run, 3–4 people on own laptops. Last chance to change anything. |
-| Sep 15 | Pre-work sent |
-| Sep 16 | Materials due |
-| Sep 17–26 | Rehearse only. Chase missing API keys. |
-| Sep 29 | Workshop |
-
----
-
-## Suggested skills for the next agent
-
-| Skill | When |
-|---|---|
-| `skill-freshness-check` | First. This file has gone stale within a day, twice. |
-| `correction-harvesting` | Any time Rob corrects an output. Capture verbatim, then fix. |
-| `uncertainty-reporting` | Reading any ablation result — applies to our own numbers. |
-| `causal-claim-guardrail` | Any claim about what the skills caused, or what caused a bug. |
-
----
-
-## Setup failures seen in the wild
-
-All hit during real sessions, all now caught by `check_setup.py` or the
-runner's preflight:
-
-1. **`pip` and `python` were different interpreters** (Store Python 3.9 vs 3.14).
-2. **A missing dependency produced a raw traceback** from five entry points.
-3. **Script run from the wrong directory**; `--compare` took shell-relative args.
-4. **A typo in `--skill` silently ran nothing** and wrote a results file.
-5. **API credit ran out mid-run**; 174 doomed requests were issued before
-   anyone noticed. Now preflighted and aborted on the first fatal error.
-6. **`Rename-Item` failed on a path-shaped destination** — use `Move-Item` for
-   full-path-to-full-path renames, or pass a bare filename to `Rename-Item`.
+Standing rule, unchanged: **run the query, read the artifact, confirm the
+push.** Eleven for eleven, same root cause.
 
 ---
 
 ## Environment
 
-The agent's container resets between sessions and CAN clone this public repo
-directly — no uploads needed.
+The agent's container resets between sessions. Clone from GitHub and read
+this file first. All verification is offline and free:
 
-DuckDB is not preinstalled: `pip install -r requirements.txt`. Rebuild the
-warehouse only if missing or corrupt (fixed seed, reproducible).
-
-Eval runs archive prior results with a timestamp rather than overwriting. Do
-not `rm results/*.json` before a run.
+```bash
+python check_setup.py
+cd evals && python verify.py
+cd .. && python references/verify_sql.py
+```
 
 No credentials are stored in this repo, and none should be.
