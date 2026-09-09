@@ -1,19 +1,31 @@
 # VALIDATE Worksheet — 30 Minutes
 
 You're going to write the test before you write the answer. This feels
-backwards the first time. It's the same discipline as test-driven development,
-and it's why this pack's own claims are numbers instead of vibes — every skill
-in the repo has an eval file that existed before anyone was sure the skill
-worked.
+backwards — and that's the point. By deciding what a "good answer" looks
+like *before* you've seen the data, you have an objective standard to
+measure against later, instead of just eyeballing the result and deciding
+it "looks right."
 
-**You have not queried the warehouse for your domain yet, and that's correct.**
-You're writing assertions about what a *good process* looks like, informed by
-what you already know — not assertions about a specific number you haven't
-seen. You'll discover the actual data-specific trap empirically next block, in
-Build.
+**A few terms you'll see on this sheet:**
 
-Keep your Define worksheet's Question Spec open — you're writing evals
-against that exact question.
+- **Eval** — short for "evaluation." A question plus a checklist of things
+  a good answer should include. Think of it as a rubric.
+- **Assertion** — one item on that checklist. A specific, checkable statement
+  like "the response names which table the data came from." Not vague ("the
+  answer is good") — specific enough that anyone reading the response could
+  say yes or no.
+- **JSON** — a text format for structured data. It uses curly braces `{}`,
+  square brackets `[]`, and quoted strings `"like this"`. You'll fill in a
+  template — you don't need to know JSON to do it, just follow the pattern
+  and be careful with commas and quotes.
+
+**You have not queried the database yet, and that's correct.** You're writing
+a checklist based on what you already know about your domain — not based on
+a specific number you haven't seen. You'll discover the actual data in the
+next block.
+
+Keep your Define worksheet's Question Spec open — you're writing this
+checklist for that exact question.
 
 ---
 
@@ -48,41 +60,62 @@ when you query the warehouse next block.
 
 ---
 
-## 3. Write your assertions — 10 min
+## 3. Write your checklist — 10 min
 
-Using the schema below, write **2 to 3 assertions** for your Define question.
-Each one must be **objectively checkable** — a reader with no context should
-be able to look at a response and say pass or fail, not "sort of."
+Write **2 to 3 things** a good answer to your question should include. Each
+one must be specific enough that a stranger reading the response could check
+it off — yes or no, not "sort of."
 
-```json
+**Examples of weak vs strong:**
+
+| Weak (can't be checked) | Strong (anyone can verify) |
+|---|---|
+| "The answer is accurate" | "The response states which table the data came from" |
+| "The analysis is thorough" | "The response names which types of employees are counted" |
+| "It handles the data correctly" | "The response addresses whether the measurement stayed consistent across the years being compared" |
+
+At least one of your items should connect to the pattern from step 2 — for
+Attrition: *"the response states the denominator used to compute the rate."*
+For Compensation: *"the response states which currency the figures are in."*
+For Engagement: *"the response addresses whether the survey scale is
+consistent across the periods being compared."*
+
+**Now put it in the template.** Open a text editor (Notepad, VS Code, or
+any editor that saves plain text), paste the template below, and fill in
+the blanks. Be careful with the punctuation — every comma, quote mark, and
+bracket matters:
+
+```
 {
-  "skill_name": "<your-domain>",
+  "skill_name": "<your domain, e.g. engagement>",
   "evals": [
     {
       "id": 1,
-      "prompt": "<paste your restated question from Define, word for word>",
-      "expected_output": "<one sentence: what a correct response does>",
+      "prompt": "<paste your question from Define, word for word>",
+      "expected_output": "<one sentence describing what a good answer does>",
       "assertions": [
-        "<objectively checkable claim about the response>",
-        "<a second one>"
+        "<your first checklist item>",
+        "<your second checklist item>"
       ]
     }
   ]
 }
 ```
 
-**Weak assertion:** "The response is accurate." Nobody can check that without
-already knowing the answer.
+**Important formatting rules:**
+- Every piece of text must be inside double quotes `"like this"` — not
+  single quotes
+- Items in a list are separated by commas, but there's **no comma after
+  the last item** (this is the most common mistake)
+- Save the file as `my-eval.json` inside the `evals` folder
 
-**Strong assertion:** "The response states which population is counted" — a
-reader can verify this by reading the response, full stop.
+**To check if your file is valid**, run this in your terminal:
 
-At least one assertion should trace directly to your domain's pattern from
-step 2 — e.g., for Attrition: *"the response states the denominator used to
-compute the rate."*
+**Windows:** `python -c "import json; json.load(open('evals/my-eval.json')); print('Valid!')"`
+**Mac/Linux:** `python3 -c "import json; json.load(open('evals/my-eval.json')); print('Valid!')"`
 
-**Save this as `evals/my-eval.json`** — that's the exact path the Build
-block's ablation script looks for by default.
+If it prints "Valid!" you're good. If it shows an error, it will point to the
+exact line and character that's wrong — usually a missing comma or quote.
 
 ---
 

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Starter Queries — Build Block</title>
+<style>
+  @page { size: letter; margin: 0.5in; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Calibri, Arial, sans-serif;
+    font-size: 9pt;
+    line-height: 1.4;
+    color: #22303C;
+    max-width: 8.5in;
+    margin: 0 auto;
+    padding: 0.4in;
+  }
+  h1 { font-family: Cambria, serif; font-size: 16pt; margin-bottom: 4pt; }
+  .subtitle { font-size: 9pt; color: #5A6B7A; border-bottom: 2px solid #2563EB; padding-bottom: 6pt; margin-bottom: 10pt; }
+  h2 { font-family: Cambria, serif; font-size: 13pt; color: #2563EB; margin-top: 14pt; margin-bottom: 4pt; page-break-after: avoid; }
+  .step { margin-bottom: 10pt; }
+  .step-head { font-weight: 700; font-size: 9.5pt; color: #22303C; margin-bottom: 2pt; }
+  .step-why { font-size: 8.5pt; color: #5A6B7A; margin-bottom: 3pt; }
+  pre {
+    background: #F3F5F7; border-left: 3px solid #CBD5DD; padding: 5pt 8pt;
+    font-family: 'Consolas', 'Courier New', monospace; font-size: 8pt;
+    line-height: 1.35; overflow-x: auto; margin-bottom: 3pt;
+  }
+  .try { font-size: 8pt; color: #E8663C; font-style: italic; margin-bottom: 6pt; }
+  .warn { background: #FDF3EF; border-left: 3px solid #E8663C; padding: 4pt 8pt; font-size: 8pt; margin: 4pt 0 8pt 0; }
+  .warn strong { color: #E8663C; }
+  .note { background: #EFF8F5; border-left: 3px solid #16864E; padding: 4pt 8pt; font-size: 8pt; margin: 4pt 0 8pt 0; }
+  .note strong { color: #16864E; }
+  .pagebreak { page-break-before: always; }
+  .how-to { background: #F3F5F7; padding: 6pt 10pt; margin-bottom: 10pt; font-size: 8.5pt; }
+  .how-to code { font-family: 'Consolas', monospace; background: #E8EBF0; padding: 1pt 3pt; }
+</style>
+</head>
+<body>
+
+<h1>Starter Queries — Build Block</h1>
+<p class="subtitle">Copy these into <code>explore.py</code> and run them. Change the SQL to explore further.</p>
+
+<div class="how-to">
+<strong>How to use these:</strong> Open <code>explore.py</code> in the repo root.
+Replace the SQL inside the triple quotes with the query below. Save. Run:
+<br><br>
+<strong>Windows:</strong> <code>python explore.py</code> &nbsp;&nbsp;
+<strong>Mac/Linux:</strong> <code>python3 explore.py</code>
+<br><br>
+Each query has a <em style="color:#E8663C;">"Try changing..."</em> prompt.
+That's where the discovery happens — the Gotcha you need for your reference
+doc shows up when you modify the query and the number moves (or doesn't)
+in a way you didn't expect.
+</div>
+
+<div class="note">
+<strong>Reading SQL — just enough for today:</strong><br>
+<code>SELECT</code> = which columns to show<br>
+<code>FROM</code> = which table to look in<br>
+<code>WHERE</code> = a filter — only show rows matching this condition<br>
+<code>GROUP BY</code> = summarize: show one row per category instead of one row per record<br>
+<code>ORDER BY</code> = sort the results<br>
+<code>count(*)</code> = "how many rows match?"<br>
+<code>avg(...)</code> = "what's the average?"<br>
+<code>round(...)</code> = round to a whole number<br>
+<code>JOIN ... ON</code> = combine two tables by matching a shared column<br>
+<code>LIMIT 5</code> = "just show me the first 5 rows"<br>
+<br>
+You don't need to write SQL from scratch — copy the queries below, modify what
+the <em style="color:#E8663C;">"Try changing..."</em> prompt suggests, and read the output.
+</div>
+
+<!-- ============================================================ -->
+<h2>Attrition</h2>
+<p style="font-size:8pt; color:#5A6B7A; margin-bottom:6pt;">
+Tables: <code>fct_separation</code>, <code>rpt_attrition_monthly</code>,
+<code>dim_worker_snapshot</code>
+</p>
+
+<div class="step">
+<div class="step-head">Query 1 — Look at the raw data</div>
+<pre>SELECT * FROM fct_separation LIMIT 5</pre>
+<div class="step-why">Notice which columns exist. What types of workers are in here?</div>
+</div>
+
+<div class="step">
+<div class="step-head">Query 2 — Who left in 2025?</div>
+<pre>SELECT worker_type, count(*) AS n
+FROM fct_separation
+WHERE year(separation_date) = 2025
+GROUP BY worker_type
+ORDER BY 1</pre>
+<div class="try">Try changing: remove the worker_type filter entirely. How many total separations? Should all of them be in your attrition rate?</div>
+</div>
+
+<div class="step">
+<div class="step-head">Query 3 — Count the Regular separations</div>
+<pre>SELECT count(*) AS separations_2025
+FROM fct_separation
+WHERE year(separation_date) = 2025
+  AND worker_type = 'Regular'</pre>
+<div class="step-why">This is your numerator. Now you need a denominator — but from where?</div>
+</div>
+
+<div class="step">
+<div class="step-head">Query 4 — Check the other attrition table</div>
+<pre>SELECT * FROM rpt_attrition_monthly
+ORDER BY month DESC LIMIT 5</pre>
+<div class="try">How many columns does this table have? Could you compute a rate from it alone?</div>
+</div>
+
+<div class="step">
+<div class="step-head">Query 5 — Get a denominator (beginning of 2025)</div>
+<pre>SELECT count(DISTINCT employee_number) AS hc
+FROM dim_worker_snapshot
+WHERE snapshot_date = DATE '2024-12-31'
+  AND worker_type = 'Regular'
+  AND employment_status IN ('Active', 'On Leave')</pre>
+<div class="try">Try changing: replace <code>'2024-12-31'</code> with <code>'2025-12-31'</code>. Compare the two numbers. Now divide your Query 3 separations by each. How far apart are the two rates?</div>
+</div>
+
+<div class="warn"><strong>That spread is your Gotcha.</strong> Same numerator, different denominators, materially different rates. Write it up.</div>
+
+<!-- ============================================================ -->
+<h2 class="pagebreak">Compensation</h2>
+<p style="font-size:8pt; color:#5A6B7A; margin-bottom:6pt;">
+Table: <code>fct_compensation</code>
+</p>
+
+<div class="step">
+<div class="step-head">Query 1 — Look at the raw data</div>
+<pre>SELECT * FROM fct_compensation LIMIT 5</pre>
+<div class="step-why">Notice the columns. What currency are the salary figures in?</div>
+</div>
+
+<div class="step">
+<div class="step-head">Query 2 — The naive average</div>
+<pre>SELECT round(avg(base_salary_local)) AS avg_salary
+FROM fct_compensation</pre>
+<div class="step-why">That's a number. Would you send it to your VP? What would you want to know first?</div>
+</div>
+
+<div class="step">
+<div class="step-head">Query 3 — Break it out by currency</div>
+<pre>SELECT currency_code,
+       count(*) AS n,
+       round(avg(base_salary_local)) AS avg_salary
+FROM fct_compensation
+GROUP BY currency_code
+ORDER BY 1</pre>
+<div class="try">Compare the per-currency averages to the blended average from Query 2. How different are they? Does the blended number mean anything?</div>
+</div>
+
+<div class="step">
+<div class="step-head">Query 4 — Who's included?</div>
+<pre>SELECT w.worker_type,
+       count(*) AS n,
+       round(avg(c.base_salary_local)) AS avg_salary
+FROM fct_compensation c
+JOIN dim_worker w ON w.worker_id = c.worker_id
+WHERE c.currency_code = 'USD'
+GROUP BY w.worker_type
+ORDER BY 1</pre>
+<div class="try">Try changing: remove the <code>WHERE currency_code = 'USD'</code> line. Does it matter?</div>
+</div>
+
+<div class="step">
+<div class="step-head">Query 5 — Base salary vs total comp</div>
+<pre>SELECT round(avg(base_salary_local)) AS avg_base,
+       round(avg(base_salary_local * (1 + target_bonus_pct))) AS avg_total
+FROM fct_compensation
+WHERE currency_code = 'USD'</pre>
+<div class="try">"What do we pay people?" — does that mean base, or base plus bonus? How big is the gap?</div>
+</div>
+
+<div class="warn"><strong>Your Gotcha is in Query 3 or Query 5</strong> — either the currency mixing or the base-vs-total ambiguity. Write up whichever one surprised you more.</div>
+
+<!-- ============================================================ -->
+<h2 class="pagebreak">Engagement</h2>
+<p style="font-size:8pt; color:#5A6B7A; margin-bottom:6pt;">
+Table: <code>fct_engagement_survey</code>
+</p>
+
+<div class="step">
+<div class="step-head">Query 1 — Look at the raw data</div>
+<pre>SELECT * FROM fct_engagement_survey LIMIT 10</pre>
+<div class="step-why">Notice the columns. How many items per person? What's the last column?</div>
+</div>
+
+<div class="step">
+<div class="step-head">Query 2 — The naive trend</div>
+<pre>SELECT year(wave_date) AS yr,
+       round(avg(response_value), 2) AS avg_score
+FROM fct_engagement_survey
+WHERE item_code IN ('ENG01', 'ENG02', 'ENG03')
+GROUP BY year(wave_date)
+ORDER BY 1</pre>
+<div class="try">Look at the year-over-year change. Is there a jump that looks unusually large? What could explain it?</div>
+</div>
+
+<div class="step">
+<div class="step-head">Query 3 — Add one column and look again</div>
+<pre>SELECT year(wave_date) AS yr,
+       scale_max,
+       count(*) AS n,
+       round(avg(response_value), 2) AS avg_score
+FROM fct_engagement_survey
+WHERE item_code IN ('ENG01', 'ENG02', 'ENG03')
+GROUP BY year(wave_date), scale_max
+ORDER BY 1</pre>
+<div class="try">Compare this to Query 2. What changed between 2024 and 2025 besides the score?</div>
+</div>
+
+<div class="step">
+<div class="step-head">Query 4 — Who responded?</div>
+<pre>SELECT w.worker_type, count(*) AS n
+FROM fct_engagement_survey e
+JOIN dim_worker w ON w.worker_id = e.worker_id
+GROUP BY w.worker_type
+ORDER BY 1</pre>
+<div class="try">Your Define spec said Regular employees only. Can you filter that in the survey table without this join?</div>
+</div>
+
+<div class="warn"><strong>Your Gotcha is in Query 2 → Query 3.</strong> The jump that looked like improvement might be something else entirely. Write it up.</div>
+
+<!-- ============================================================ -->
+<div style="margin-top:16pt; padding-top:8pt; border-top: 1px solid #CBD5DD;">
+<p style="font-size:8pt; color:#94A3B8;">
+<strong>Remember:</strong> change the SQL inside the triple quotes in
+<code>explore.py</code>, save, run. The <code>read_only=True</code> in the
+script means you can't break the database — experiment freely.
+Every query on this page has been verified against the workshop warehouse.
+</p>
+</div>
+
+</body>
+</html>

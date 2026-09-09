@@ -8,61 +8,328 @@ you wrote in Validate, against the ONE reference doc you wrote in Build, on
 your own machine, with your own API key. It's built to finish in well under a
 minute so a whole room can run it at the same time without anyone waiting.
 
-It reuses evals/run_evals.py's agent loop and grader rather than
-reimplementing them -- that loop was debugged through several real failures
-during development (turn-budget exhaustion, credit errors, empty responses),
-and a participant-facing script is the wrong place to reintroduce those bugs.
+Supports three providers, auto-detected from whichever API key is set:
+    ANTHROPIC_API_KEY  -> Claude (default, recommended)
+    OPENAI_API_KEY     -> OpenAI (GPT-4o or similar)
+    GOOGLE_API_KEY     -> Google Gemini
+
+If multiple keys are set, pass --provider to choose explicitly.
 
 Usage (from the repo root or from workshop/):
     python run_my_ablation.py
-
-Looks for:
-    evals/my-eval.json          the eval you wrote in Validate
-    references/<domain>.md      the reference doc you wrote in Build
-                                 (auto-detected; pass --reference to override)
+    python run_my_ablation.py --provider openai
+    python run_my_ablation.py --provider gemini
 
 Does NOT touch evals/results/ -- that directory holds the pack's own official
-ablation and is used by the deck and the failure-demo script. This writes
-nowhere by default; pass --save to write a timestamped file in workshop/.
+ablation. This writes nowhere by default; pass --save to write a timestamped
+file in workshop/.
 """
 
 import argparse
 import glob
 import json
 import os
+import re
 import sys
+import time
 import datetime
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)  # workshop/ -> repo root
+DB = os.path.join(ROOT, "warehouse", "people_analytics.duckdb")
 
-# Reuse the pack's own agent loop, grader, retry logic, and error handling
-# rather than reimplementing them here.
-sys.path.insert(0, os.path.join(ROOT, "evals"))
-try:
-    import run_evals as core
-except ImportError as e:
-    sys.exit(
-        f"\nCouldn't import evals/run_evals.py: {e}\n"
-        f"Run this script from the repo root or from workshop/, and make sure\n"
-        f"evals/run_evals.py exists there.\n")
+SCHEMA_PREAMBLE = """You have read-only access to a DuckDB warehouse of people
+analytics data at {db}. Answer the user's question using it. You may run SQL.
+The as-of date for the warehouse is 2026-06-30."""
+
+GRADER_PROMPT = """You are grading an AI assistant's response against assertions.
+
+QUESTION ASKED:
+{prompt}
+
+WHAT A CORRECT RESPONSE DOES:
+{expected}
+
+THE RESPONSE TO GRADE:
+{response}
+
+ASSERTIONS — judge each independently as PASS or FAIL:
+{assertions}
+
+Grade strictly. An assertion passes only if the response clearly satisfies it.
+Partial credit is not available. If the response is ambiguous, that is a FAIL.
+
+Return ONLY a JSON object, no preamble and no markdown fences:
+{{"results": [{{"assertion": 1, "verdict": "PASS", "reason": "..."}}, ...]}}"""
 
 EVAL_DEFAULT = os.path.join(ROOT, "evals", "my-eval.json")
-# The only legitimate participant-produced domain docs, per define-worksheet.md
-# and build-worksheet.md. An ALLOWLIST, not a blocklist: a blocklist breaks
-# every time a new file lands in references/ (this one already did, on the
-# first test run -- analysis-patterns.md was silently picked up as a
-# candidate). A new pack-infrastructure file can never be mistaken for a
-# participant's doc under an allowlist; it simply isn't on it.
 KNOWN_DOMAINS = {"attrition.md", "compensation.md", "engagement.md"}
 
+# Default models per provider
+MODELS = {
+    "anthropic": {"agent": "claude-sonnet-5", "grader": "claude-sonnet-5"},
+    "openai": {"agent": "gpt-4o", "grader": "gpt-4o"},
+    "gemini": {"agent": "gemini-2.5-flash", "grader": "gemini-2.5-flash"},
+}
 
+FATAL_MARKERS = (
+    "credit balance is too low",
+    "authentication_error",
+    "invalid x-api-key",
+    "invalid_api_key",
+    "permission_error",
+    "account has been disabled",
+    "quota exceeded",
+    "billing",
+)
+
+# ---------------------------------------------------------------- SQL tool
+def run_sql(query):
+    import duckdb
+    con = duckdb.connect(DB, read_only=True)
+    try:
+        cur = con.execute(query)
+        cols = [d[0] for d in cur.description]
+        rows = cur.fetchmany(200)
+        return json.dumps({"columns": cols, "rows": [list(map(str, r)) for r in rows]})
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+    finally:
+        con.close()
+
+
+# ---------------------------------------------------------------- provider: Anthropic
+def _call_agent_anthropic(client, prompt, system, model, max_turns=10):
+    tools = [{
+        "name": "run_sql",
+        "description": "Execute a read-only SQL query against the DuckDB warehouse.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"query": {"type": "string"}},
+            "required": ["query"],
+        },
+    }]
+    messages = [{"role": "user", "content": prompt}]
+    for _ in range(max_turns):
+        resp = client.messages.create(
+            model=model, max_tokens=3000,
+            system=system, tools=tools, messages=messages)
+        messages.append({"role": "assistant", "content": resp.content})
+        tool_uses = [b for b in resp.content if getattr(b, "type", None) == "tool_use"]
+        if not tool_uses:
+            break
+        results = []
+        for tu in tool_uses:
+            results.append({
+                "type": "tool_result", "tool_use_id": tu.id,
+                "content": run_sql(tu.input.get("query", "")),
+            })
+        messages.append({"role": "user", "content": results})
+    return "\n".join(b.text for b in resp.content if getattr(b, "type", None) == "text")
+
+
+def _grade_anthropic(client, ev, response, model):
+    numbered = "\n".join(f"{i+1}. {a}" for i, a in enumerate(ev["assertions"]))
+    msg = client.messages.create(
+        model=model, max_tokens=2000,
+        messages=[{"role": "user", "content": GRADER_PROMPT.format(
+            prompt=ev["prompt"], expected=ev.get("expected_output", ""),
+            response=response, assertions=numbered)}])
+    raw = "".join(b.text for b in msg.content if getattr(b, "type", None) == "text")
+    raw = re.sub(r"^```(?:json)?|```$", "", raw.strip(), flags=re.M).strip()
+    return json.loads(raw)["results"]
+
+
+# ---------------------------------------------------------------- provider: OpenAI
+def _call_agent_openai(client, prompt, system, model, max_turns=10):
+    tools = [{
+        "type": "function",
+        "function": {
+            "name": "run_sql",
+            "description": "Execute a read-only SQL query against the DuckDB warehouse.",
+            "parameters": {
+                "type": "object",
+                "properties": {"query": {"type": "string"}},
+                "required": ["query"],
+            },
+        },
+    }]
+    messages = [
+        {"role": "system", "content": system},
+        {"role": "user", "content": prompt},
+    ]
+    for _ in range(max_turns):
+        resp = client.chat.completions.create(
+            model=model, max_tokens=3000,
+            tools=tools, messages=messages)
+        choice = resp.choices[0]
+        messages.append(choice.message)
+        if not choice.message.tool_calls:
+            break
+        for tc in choice.message.tool_calls:
+            args = json.loads(tc.function.arguments)
+            result = run_sql(args.get("query", ""))
+            messages.append({
+                "role": "tool", "tool_call_id": tc.id, "content": result,
+            })
+    return choice.message.content or ""
+
+
+def _grade_openai(client, ev, response, model):
+    numbered = "\n".join(f"{i+1}. {a}" for i, a in enumerate(ev["assertions"]))
+    resp = client.chat.completions.create(
+        model=model, max_tokens=2000,
+        messages=[{"role": "user", "content": GRADER_PROMPT.format(
+            prompt=ev["prompt"], expected=ev.get("expected_output", ""),
+            response=response, assertions=numbered)}])
+    raw = resp.choices[0].message.content or ""
+    raw = re.sub(r"^```(?:json)?|```$", "", raw.strip(), flags=re.M).strip()
+    return json.loads(raw)["results"]
+
+
+# ---------------------------------------------------------------- provider: Gemini
+def _call_agent_gemini(client, prompt, system, model, max_turns=10):
+    # Gemini's genai SDK uses a different interface
+    from google import genai
+    from google.genai import types
+
+    sql_tool = types.Tool(function_declarations=[
+        types.FunctionDeclaration(
+            name="run_sql",
+            description="Execute a read-only SQL query against the DuckDB warehouse.",
+            parameters=types.Schema(
+                type="OBJECT",
+                properties={"query": types.Schema(type="STRING")},
+                required=["query"],
+            ),
+        )
+    ])
+
+    chat = client.chats.create(
+        model=model,
+        config=types.GenerateContentConfig(
+            system_instruction=system,
+            tools=[sql_tool],
+        ),
+    )
+
+    resp = chat.send_message(prompt)
+    for _ in range(max_turns):
+        # Check for function calls
+        fc_parts = [p for p in resp.candidates[0].content.parts
+                     if p.function_call and p.function_call.name]
+        if not fc_parts:
+            break
+        tool_responses = []
+        for part in fc_parts:
+            result = run_sql(part.function_call.args.get("query", ""))
+            tool_responses.append(
+                types.Part.from_function_response(
+                    name="run_sql", response=json.loads(result)))
+        resp = chat.send_message(tool_responses)
+
+    # Extract text from the final response
+    return "".join(p.text for p in resp.candidates[0].content.parts if p.text)
+
+
+def _grade_gemini(client, ev, response, model):
+    from google.genai import types
+    numbered = "\n".join(f"{i+1}. {a}" for i, a in enumerate(ev["assertions"]))
+    resp = client.models.generate_content(
+        model=model,
+        contents=GRADER_PROMPT.format(
+            prompt=ev["prompt"], expected=ev.get("expected_output", ""),
+            response=response, assertions=numbered),
+        config=types.GenerateContentConfig(max_output_tokens=2000))
+    raw = resp.text or ""
+    raw = re.sub(r"^```(?:json)?|```$", "", raw.strip(), flags=re.M).strip()
+    return json.loads(raw)["results"]
+
+
+# ---------------------------------------------------------------- provider detection
+def detect_provider(explicit=None):
+    """Return (provider_name, api_key) or exit with a helpful message."""
+    providers = [
+        ("anthropic", "ANTHROPIC_API_KEY"),
+        ("openai", "OPENAI_API_KEY"),
+        ("gemini", "GOOGLE_API_KEY"),
+    ]
+
+    if explicit:
+        for name, env in providers:
+            if name == explicit:
+                key = os.getenv(env, "")
+                if not key:
+                    sys.exit(f"\n--provider {name} was specified but {env} is "
+                             f"not set.\n")
+                return name, key
+        sys.exit(f"\nUnknown provider: {explicit}. "
+                 f"Options: anthropic, openai, gemini\n")
+
+    found = [(name, os.getenv(env, "")) for name, env in providers if os.getenv(env)]
+    if not found:
+        sys.exit(
+            "\nNo API key found. Set one of these environment variables:\n\n"
+            "  ANTHROPIC_API_KEY   (recommended — Claude)\n"
+            "  OPENAI_API_KEY      (GPT-4o)\n"
+            "  GOOGLE_API_KEY      (Gemini)\n\n"
+            "See the pre-work email or run check_setup.py for help.\n")
+
+    if len(found) > 1:
+        names = ", ".join(f[0] for f in found)
+        print(f"Multiple API keys found ({names}). Using {found[0][0]}.")
+        print(f"  Pass --provider <name> to choose a different one.\n")
+
+    return found[0]
+
+
+def make_client(provider):
+    """Create the appropriate API client."""
+    if provider == "anthropic":
+        from anthropic import Anthropic
+        return Anthropic()
+    elif provider == "openai":
+        from openai import OpenAI
+        return OpenAI()
+    elif provider == "gemini":
+        from google import genai
+        return genai.Client()
+
+
+def call_agent(client, prompt, system, provider, model, max_turns=10):
+    fn = {"anthropic": _call_agent_anthropic,
+          "openai": _call_agent_openai,
+          "gemini": _call_agent_gemini}[provider]
+    return fn(client, prompt, system, model, max_turns)
+
+
+def grade(client, ev, response, provider, model):
+    fn = {"anthropic": _grade_anthropic,
+          "openai": _grade_openai,
+          "gemini": _grade_gemini}[provider]
+    try:
+        return fn(client, ev, response, model)
+    except Exception as e:
+        return [{"assertion": i + 1, "verdict": "ERROR", "reason": str(e)}
+                for i in range(len(ev["assertions"]))]
+
+
+# ---------------------------------------------------------------- file finders
 def find_eval(path):
     if not os.path.exists(path):
+        # Check for common typos
+        d = os.path.dirname(path)
+        if os.path.isdir(d):
+            import difflib
+            candidates = [f for f in os.listdir(d) if f.endswith(".json")]
+            near = difflib.get_close_matches(os.path.basename(path), candidates, n=1, cutoff=0.6)
+            hint = f"\n\nDid you mean: {os.path.join(d, near[0])}" if near else ""
+        else:
+            hint = ""
         sys.exit(
             f"\nNo eval found at {path}\n\n"
             f"That's the file you wrote in Validate. Save your JSON there --\n"
-            f"see validate-worksheet.md step 3 -- then run this again.\n")
+            f"see validate-worksheet.md step 3 -- then run this again.{hint}\n")
     try:
         data = json.load(open(path))
     except json.JSONDecodeError as e:
@@ -107,17 +374,17 @@ def find_reference(explicit):
     return candidates[0]
 
 
-def run_one(client, ev, system, repeats):
-    """One or more repeats of one condition. Returns (avg_pass, total, last_response, runs)."""
+# ---------------------------------------------------------------- run + display
+def run_one(client, ev, system, provider, models, repeats):
     runs = []
     last_resp, last_graded = "", []
     for _ in range(repeats):
-        resp = core.call_agent(client, ev["prompt"], system)
+        resp = call_agent(client, ev["prompt"], system, provider,
+                          models["agent"])
         if not resp.strip():
-            print("  (a run came back empty after exhausting the query budget "
-                  "-- skipping it)")
+            print("  (a run came back empty — skipping it)")
             continue
-        graded = core.grade(client, ev, resp)
+        graded = grade(client, ev, resp, provider, models["grader"])
         runs.append(sum(1 for g in graded if g["verdict"] == "PASS"))
         last_resp, last_graded = resp, graded
     if not runs:
@@ -137,80 +404,99 @@ def print_result(label, avg, total, resp, graded):
         print(f"    {line}")
 
 
+def preflight(client, provider, model):
+    """One tiny call to catch key/credit problems before the real run."""
+    try:
+        if provider == "anthropic":
+            client.messages.create(model=model, max_tokens=4,
+                                   messages=[{"role": "user", "content": "ok"}])
+        elif provider == "openai":
+            client.chat.completions.create(model=model, max_tokens=4,
+                                           messages=[{"role": "user", "content": "ok"}])
+        elif provider == "gemini":
+            client.models.generate_content(model=model, contents="ok")
+    except Exception as e:
+        msg = str(e)
+        print(f"\nPreflight call failed — not running your ablation.\n\n  {msg[:400]}\n")
+        if any(m.lower() in msg.lower() for m in FATAL_MARKERS):
+            print("This is an account-level problem (key or credit), not a "
+                  "bug in your work. Flag the facilitator.")
+        sys.exit(1)
+
+
+# ---------------------------------------------------------------- main
 def main():
-    ap = argparse.ArgumentParser()
+    ap = argparse.ArgumentParser(
+        description="Run your own ablation: baseline vs. your reference doc.")
     ap.add_argument("--eval", default=EVAL_DEFAULT, help="path to your eval JSON")
     ap.add_argument("--reference", default=None, help="path to your reference doc")
+    ap.add_argument("--provider", default=None, choices=["anthropic", "openai", "gemini"],
+                    help="which AI provider to use (auto-detected from API key if not set)")
     ap.add_argument("--repeats", type=int, default=1,
-                    help="repeat each condition N times (default: 1 -- one is "
-                         "plenty for a 20-minute room exercise)")
+                    help="repeat each condition N times (default: 1)")
     ap.add_argument("--save", action="store_true",
                     help="write a timestamped result file in workshop/")
     args = ap.parse_args()
 
-    # Validate local files first -- instant, free, and the most common thing
-    # to be wrong. No reason to make someone set up an API key before finding
-    # out their JSON has a trailing comma.
+    # Validate local files first — instant, free, most common thing to be wrong.
     ev = find_eval(args.eval)
     ref_path = find_reference(args.reference)
     ref_text = open(ref_path).read() if ref_path else ""
 
     try:
-        import duckdb  # noqa: F401 -- needed by the SQL tool
-        from anthropic import Anthropic
-    except ImportError as e:
-        sys.exit(f"\nMissing dependency: {e.name or e}\n"
-                 f"  pip install -r requirements.txt\n")
+        import duckdb  # noqa: F401
+    except ImportError:
+        sys.exit("\nMissing dependency: duckdb\n"
+                 "  python -m pip install duckdb\n")
 
-    if not os.getenv("ANTHROPIC_API_KEY"):
-        sys.exit("\nANTHROPIC_API_KEY not set. Run check_setup.py first.\n")
+    provider, _key = detect_provider(args.provider)
+    models = MODELS[provider]
 
-    client = Anthropic()
-
-    # Preflight -- one tiny call, so a credit or key problem is caught in two
-    # seconds instead of after you've explained your results to a neighbour.
     try:
-        client.messages.create(model=core.AGENT_MODEL, max_tokens=4,
-                               messages=[{"role": "user", "content": "ok"}])
-    except Exception as e:
-        msg = str(e)
-        print(f"\nPreflight call failed -- not running your ablation.\n\n  {msg[:400]}\n")
-        if any(m.lower() in msg.lower() for m in core.FATAL_MARKERS):
-            print("This is an account-level problem (key or credit), not a "
-                  "bug in your work. Flag the facilitator.")
-        sys.exit(1)
+        client = make_client(provider)
+    except ImportError as e:
+        pkg = {"anthropic": "anthropic", "openai": "openai",
+               "gemini": "google-genai"}[provider]
+        sys.exit(f"\nMissing dependency for {provider}: {e}\n"
+                 f"  python -m pip install {pkg}\n")
 
-    print(f"\nYour question:  {ev['prompt']}")
+    print(f"Provider: {provider}  |  Agent: {models['agent']}  |  "
+          f"Grader: {models['grader']}")
+
+    preflight(client, provider, models["agent"])
+    print("preflight ok\n")
+
+    print(f"Your question:  {ev['prompt']}")
     print(f"Assertions:     {len(ev['assertions'])}")
     if ref_path:
         print(f"Reference doc:  {os.path.relpath(ref_path, ROOT)}")
 
-    base_system = core.SCHEMA_PREAMBLE.format(db=core.DB)
+    base_system = SCHEMA_PREAMBLE.format(db=DB)
 
     print("\nRunning baseline (no reference doc)...")
-    try:
-        b_avg, b_tot, b_resp, b_graded = run_one(
-            client, ev, base_system, args.repeats)
-    except core.FatalAPIError as e:
-        sys.exit(f"\nStopped -- account-level API error: {str(e)[:300]}\n")
+    b_avg, b_tot, b_resp, b_graded = run_one(
+        client, ev, base_system, provider, models, args.repeats)
 
     if ref_path:
         print("Running with your reference doc loaded...")
-        try:
-            s_avg, s_tot, s_resp, s_graded = run_one(
-                client, ev, base_system + "\n\n" + ref_text, args.repeats)
-        except core.FatalAPIError as e:
-            sys.exit(f"\nStopped -- account-level API error: {str(e)[:300]}\n")
+        s_avg, s_tot, s_resp, s_graded = run_one(
+            client, ev, base_system + "\n\n" + ref_text, provider, models,
+            args.repeats)
     else:
         s_avg = s_tot = s_resp = s_graded = None
 
-    print_result("BASELINE", b_avg, b_tot, b_resp, b_graded)
+    if b_avg is not None:
+        print_result("BASELINE", b_avg, b_tot, b_resp, b_graded)
+    else:
+        print("\nBASELINE: no valid runs (agent returned empty every time)")
+
     if s_avg is not None:
         print_result("WITH YOUR REFERENCE DOC", s_avg, s_tot, s_resp, s_graded)
-        delta = (s_avg - b_avg) / b_tot * 100 if b_tot else 0
-        print(f"\n{'='*60}")
-        print(f"  {b_avg:.1f}/{b_tot} -> {s_avg:.1f}/{s_tot}   ({delta:+.0f} pts)")
-        print(f"{'='*60}")
+        if b_avg is not None:
+            delta = (s_avg - b_avg) / b_tot * 100 if b_tot else 0
+            print(f"\n{'='*60}")
+            print(f"  {b_avg:.1f}/{b_tot} -> {s_avg:.1f}/{s_tot}   ({delta:+.0f} pts)")
+            print(f"{'='*60}")
 
     print("\nCompare this against your Validate worksheet prediction.")
     print("Were you right about which assertions would fail? A miss there is")
@@ -220,10 +506,11 @@ def main():
         stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
         out = os.path.join(HERE, f"my-ablation-{stamp}.json")
         json.dump({
+            "provider": provider, "agent_model": models["agent"],
             "prompt": ev["prompt"], "reference_doc": ref_path,
             "baseline": {"avg": b_avg, "total": b_tot, "response": b_resp},
             "with_doc": ({"avg": s_avg, "total": s_tot, "response": s_resp}
-                        if s_avg is not None else None),
+                         if s_avg is not None else None),
         }, open(out, "w"), indent=2)
         print(f"\nSaved -> {os.path.relpath(out, ROOT)}")
 

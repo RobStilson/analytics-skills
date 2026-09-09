@@ -10,6 +10,53 @@ and reading the result. You're joining that habit now, not being warned about it
 
 ---
 
+## Before you start — set up your query tool
+
+You'll run database queries using a small Python file. **You don't need to know
+Python or SQL** — you'll copy pre-written queries, paste them in, and run them.
+
+**Create this file once** — open any text editor, paste the following, and save
+it as `explore.py` in the main `analytics-skills` folder (not in a subfolder):
+
+```python
+import duckdb
+con = duckdb.connect("warehouse/people_analytics.duckdb", read_only=True)
+
+result = con.execute("""
+    SELECT * FROM fct_separation LIMIT 5
+""").fetchall()
+
+for row in result:
+    print(row)
+
+con.close()
+```
+
+**To run it**, open your terminal (not VS Code's play button — use the
+terminal you ran `check_setup.py` from earlier) and type:
+
+**Windows:** `python explore.py`
+**Mac/Linux:** `python3 explore.py`
+
+You should see rows of data. To try a different query, change only the text
+between the `"""` marks (the triple quotes), save, and run again.
+
+**If you're not comfortable with SQL:** use the **Starter Queries** handout.
+It has pre-written queries for your domain — copy them in, run them, and
+follow the "Try changing..." prompts.
+
+**A 30-second SQL primer** — just enough for today:
+- `SELECT` = which columns to show
+- `FROM` = which table to look in
+- `WHERE` = a filter (only show rows matching this condition)
+- `GROUP BY` = summarize: instead of one row per person, show one row per category
+- `ORDER BY` = sort the results
+- `count(*)` = "how many rows"
+- `avg(...)` = "what's the average"
+- `LIMIT 5` = "just show me the first 5 rows"
+
+---
+
 ## 0. Orient — 2 min
 
 Pull up your **Define worksheet** (the question spec) and your **Validate
@@ -44,12 +91,14 @@ correct it in step 3.
 
 ## 2. Required Filters — 5 min
 
-Run your first query with no filters at all. Look at the row count. Now ask:
+Run your first query — open your `explore.py`, paste the starter query for
+your domain (from the Starter Queries handout, or write your own), and run it.
+Look at the results. Now ask:
 
 - Does this table mix worker types, statuses, or currencies that your question
   shouldn't blend together?
-- What's the *smallest* change to your `WHERE` clause that meaningfully changes
-  the result?
+- What's the smallest change to your filter that meaningfully changes the
+  result? (Try adding or removing a condition after `WHERE` in the query.)
 
 Write the **Required Filters** table with at least two rows.
 
@@ -77,8 +126,16 @@ your domain, and see if they agree.
 - **Engagement** — pull one survey item across every wave in the table. Before
   you trend it, check whether every wave measured it the same way.
 
-When you find a discrepancy: **that's your Gotcha.** Write it in the template's
-Do/Don't format — the wrong query, what it silently produces, and the right one.
+When you find a discrepancy: **that's your Gotcha.** Write it up using this
+format in your reference doc:
+
+- **What:** one sentence describing the trap
+- **Why:** why this happens (the data, not a mistake)
+- **Do:** the correct approach (with a query if you have one)
+- **Don't:** the wrong approach that looks right (with the query that produces
+  the wrong number)
+
+See `references/EXAMPLE-headcount.md` for a worked example of this format.
 
 Aim for at least **one** fully-written Gotcha with real numbers from your own
 query. One real one beats three guessed ones.

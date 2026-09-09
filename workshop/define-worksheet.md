@@ -47,13 +47,15 @@ Fill in **Restated question** and **Population** now.
 
 ## 2. Time basis and grain — 4 min
 
-- **Time basis:** is this a snapshot as of a date, or a window of activity
-  over a period? "Last year" could mean either.
-- **Grain:** what does one row represent, in the table you'd guess is right?
-  A person? A person-month? An event?
+- **Time basis:** does this question ask about a single moment in time
+  ("how many employees do we have right now") or a period of activity
+  ("how many people left during 2025")? These need different approaches.
+- **Grain:** what does one row in the table represent? A person? A person
+  per month? An event? (Check your data dictionary — it says this for each
+  table.)
 
-You're guessing at this point — you haven't queried anything. That's fine.
-Write down your best guess for **Time basis** and **Grain**.
+You're guessing at this point — you haven't looked at the data. That's fine.
+Write down your best guess.
 
 ---
 

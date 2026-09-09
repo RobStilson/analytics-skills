@@ -118,7 +118,7 @@
 <h1>Workshop Warehouse — Data Dictionary</h1>
 <p class="subtitle">
   <strong>people_analytics.duckdb</strong> &nbsp;·&nbsp;
-  44 tables (16 populated, 28 empty decoys) &nbsp;·&nbsp;
+  44 tables (16 with data, 28 deliberately empty) &nbsp;·&nbsp;
   ~5,300 workers &nbsp;·&nbsp;
   data through 2026-06-30
 </p>
@@ -244,7 +244,7 @@
 <!-- fct_job_record -->
 <h3>fct_job_record</h3>
 <p class="meta"><strong>12,282 rows</strong> · one row per job assignment (people with transfers have multiple rows) · 2021-02 to 2026-06</p>
-<div class="warn"><strong>Grain fan-out: 2.32× the worker count.</strong> Joining this to dim_worker without deduplication inflates counts silently.</div>
+<div class="warn"><strong>Multiple rows per person — 2.32× inflation risk.</strong> People with job transfers have multiple rows here (12,282 rows for 5,294 people). If you count rows instead of unique people, your number will be more than double the real answer, with no error message.</div>
 <table>
   <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
   <tr><td class="mono">job_record_id</td><td>VARCHAR</td><td></td></tr>
@@ -284,7 +284,7 @@
 <!-- fct_tenure_award -->
 <h3>fct_tenure_award</h3>
 <p class="meta"><strong>707 rows</strong> · one row per award · 2024-02 to 2026-06</p>
-<div class="warn"><strong>Immortal time bias.</strong> Only people who stayed long enough get a 3-Year Service Award. Comparing their attrition to non-recipients is measuring survival, not the award's effect.</div>
+<div class="warn"><strong>Survival bias.</strong> Only people who stayed long enough receive a 3-Year Service Award. Comparing their attrition rate to non-recipients doesn't measure the award's effect — it measures who stayed long enough to get one. The award didn't reduce attrition; attrition selected who got the award.</div>
 <table>
   <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
   <tr><td class="mono">award_id</td><td>VARCHAR</td><td></td></tr>
@@ -384,7 +384,7 @@
   <tr><td class="mono">fct_separation</td><td class="mono">dim_worker_snapshot</td><td class="mono">employee_number</td><td>Snapshot must be filtered to the correct date — an unfiltered join fans out across all 42 monthly snapshots</td></tr>
   <tr><td class="mono">fct_compensation</td><td class="mono">dim_worker</td><td class="mono">worker_id</td><td>Comp has one effective_date per worker; snapshot has 42 — pick the right one or get 42× inflation</td></tr>
   <tr><td class="mono">fct_engagement_survey</td><td class="mono">dim_worker</td><td class="mono">worker_id</td><td>Only surveyed workers appear — non-respondents are absent, not NULL</td></tr>
-  <tr><td class="mono">fct_job_record</td><td class="mono">dim_worker</td><td class="mono">worker_id</td><td>Workers with transfers have multiple rows — 12,282 vs 5,294 = 2.32× fan-out</td></tr>
+  <tr><td class="mono">fct_job_record</td><td class="mono">dim_worker</td><td class="mono">worker_id</td><td>Workers with transfers have multiple rows — 12,282 rows for 5,294 people. Counting rows instead of unique people doubles your answer</td></tr>
   <tr><td class="mono">any table</td><td class="mono">dim_org_unit</td><td class="mono">org_unit_v2</td><td>Use org_unit_v2, never department (54% populated)</td></tr>
 </table>
 

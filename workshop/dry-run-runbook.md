@@ -109,8 +109,9 @@ shortened version — same content, different framing:
 > if anything breaks, better to find out this week than while I'm watching.
 >
 > 1. Clone: `git clone https://github.com/RobStilson/analytics-skills.git`
-> 2. `pip install -r requirements.txt` (use `python -m pip` if you have more
->    than one Python installed)
+> 2. `python -m pip install -r requirements.txt` (always `python -m pip`,
+>    never bare `pip`). If you get a 401 or proxy error, add
+>    `--index-url https://pypi.org/simple/` to the end.
 > 3. Get an API key at console.anthropic.com and **add a few dollars of
 >    credit** — a key with no credit fails in a way that looks like a bug
 > 4. Set `ANTHROPIC_API_KEY` as an environment variable

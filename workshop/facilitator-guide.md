@@ -94,6 +94,14 @@ common issues:
    Always `python -m pip`, never bare `pip` — bare `pip` may install to a
    different Python than the one running the scripts.
 
+   **If they get a 401 error or "credentials not correct"** — they're on a
+   corporate network that routes pip through an internal mirror. Add the
+   public index:
+
+   ```powershell
+   python -m pip install -r requirements.txt --index-url https://pypi.org/simple/
+   ```
+
 3. **If nothing works and you're burning time:** hand them one of your spare
    API keys, have them set it, and move on. Fix the root cause at the break.
 

@@ -41,11 +41,34 @@ If you don't have Python, or it's older than 3.9, grab it from [python.org](http
 
 ## 4. Install the dependencies
 
-From inside the folder you cloned or unzipped:
+Open your terminal, navigate to the folder you downloaded, and run:
 
+**Windows:**
 ```
+cd Desktop\analytics-skills-main
 python -m pip install -r requirements.txt
 ```
+
+**Mac/Linux:**
+```
+cd ~/Desktop/analytics-skills-main
+python3 -m pip install -r requirements.txt
+```
+
+(If you downloaded the ZIP, the folder may be called `analytics-skills-main`
+instead of `analytics-skills` — look for whichever one you have.)
+
+**If you get a credentials error, proxy error, or 401 from an internal
+server** (common on corporate networks that route pip through an internal
+mirror): add `--index-url https://pypi.org/simple/` to the end of the command:
+
+```
+python -m pip install -r requirements.txt --index-url https://pypi.org/simple/
+```
+
+If that still doesn't work, your IT department may need to whitelist
+`pypi.org` and `files.pythonhosted.org`. Reply to this email and we'll sort
+it out before the workshop.
 
 ## 5. Get an Anthropic API key — and add credit
 
