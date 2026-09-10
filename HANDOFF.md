@@ -1,28 +1,29 @@
-# Handoff — 2026-08-11 (end of day)
+# Handoff — 2026-09-09 (end of day)
 
 **Project:** Vibe Analytics workshop + `analytics-skills` repo
-**Conference:** 2026-09-29 · **Materials due:** 2026-09-16 · **Dry run:** Sep 8–12
+**Conference:** 2026-09-29 · **Materials due:** 2026-09-16
+**Dry run:** Sep 8–12 (in progress — smoke test started on work machine today)
 **Repo:** https://github.com/RobStilson/analytics-skills (public)
 
 ---
 
-## FIRST: two commits not yet pushed
+## FIRST: three cleanup items on GitHub
 
-GitHub is at `739c562`. Two commits with the facilitator walkthrough and
-reference doc materials are local only:
+These are on GitHub right now and should be fixed before the dry run:
 
-| Commit | What |
-|---|---|
-| `eaefe68` | Compensation reference doc + walkthrough |
-| `52c3270` | All three domain walkthroughs + attrition/engagement reference docs |
-
-These go to `warehouse/facilitator/` — answer-key material, correctly
-quarantined from participants. Push:
+| Issue | File | Fix |
+|---|---|---|
+| **Answer key leaked into participant space** | `references/engagement.md` | Move to `warehouse/facilitator/engagement.md` (it's already there too — just delete the `references/` copy) |
+| **Leftover roleplay artifact** | `workshop/my-define-spec.md` | Delete — this was Rob's own Define spec from the engagement walkthrough, not a participant file |
+| **Leftover exploration script** | `references/explore_duckdb.py` | Delete — participants create their own `explore.py` in the repo root per the Build worksheet |
 
 ```powershell
 cd "C:\Agentic AI\Skills\analytics-skills"
-git add warehouse/facilitator/
-git commit -m "Add complete facilitator safety net: all three domain walkthroughs and reference docs"
+Remove-Item references\engagement.md
+Remove-Item workshop\my-define-spec.md
+Remove-Item references\explore_duckdb.py
+git add -A
+git commit -m "Remove leaked answer key and leftover artifacts"
 git push
 ```
 
@@ -30,96 +31,113 @@ git push
 
 ## What was built today
 
-### Facilitator walkthrough materials (the big deliverable)
+### Multi-provider ablation script
+`run_my_ablation.py` now supports Anthropic, OpenAI, and Gemini — auto-
+detected from whichever API key is set. Fully self-contained (no longer
+imports from `run_evals.py`). Includes fuzzy filename matching for typos
+(`my-evals.json` → "Did you mean: my-evals.json"). Triggered by Rob's work
+machine not having Anthropic access.
 
-Three complete step-by-step query sequences, one per workshop domain, for
-unsticking a stuck participant during the Build block. Each follows the same
-structure: numbered queries in discovery order, "what they should notice" and
-"if they don't, say this" at each step, and a ranked summary of discoverable
-Gotchas at the end.
+**The OpenAI and Gemini paths have NOT been tested against live APIs.** The
+Anthropic path is proven. Rob's work machine with an OpenAI key is the first
+real test of the OpenAI path — results not yet available.
 
-| Domain | Reference doc | Walkthrough | Queries | All verified |
-|---|---|---|---|---|
-| Attrition | `warehouse/facilitator/attrition.md` | `attrition-walkthrough.md` | 8 | ✅ |
-| Compensation | `warehouse/facilitator/compensation.md` | `compensation-walkthrough.md` | 7 | ✅ |
-| Engagement | `warehouse/facilitator/engagement.md` | `engagement-walkthrough.md` | 7 | ✅ |
+### Beginner-proofing of all participant materials
+Systematic audit of every participant-facing file assuming zero SQL, Python,
+or PowerShell knowledge. 15 issues found and fixed:
 
-Plus `GROUND_TRUTH.md` (already there). Seven facilitator files total.
+- Pre-work email: ZIP download is now primary, git is the alternative;
+  "environment variable" explained in plain language
+- Validate worksheet: "eval," "assertion," and "JSON" defined in a glossary
+  before first use; JSON formatting rules made explicit
+- Build worksheet: `explore.py` setup written on the worksheet itself (not
+  only delivered verbally); 30-second SQL primer added; starter queries
+  referenced as fallback
+- Define worksheet: "grain" and "as-of convention" defined in plain language
+- Data dictionary: "fan-out" → "multiple rows per person"; "decoys" →
+  "deliberately empty"; "immortal time bias" → "survival bias"
+- Starter queries: SQL reading guide added
 
-### The Engagement domain was walked through end-to-end as a participant
+### Corporate proxy workaround
+Added `--index-url https://pypi.org/simple/` guidance to the pre-work email,
+facilitator guide, and dry-run runbook after hitting a 401 from Lockheed's
+internal pip mirror (`nexus.global.lmco.com`) on the work machine. Seventh
+setup failure documented.
 
-A full roleplay of the workshop from Define through Ablation, with Rob as a
-participant. Findings that matter for the real workshop:
+### Executive briefing deck
+13-slide deck for Rob's supervisor on adopting the approach at Lockheed
+Martin. Frames the problem in HR terms, shows the measured results with
+honest caveats, includes a before/after demo, and lands on a specific ask:
+pick one recurring PA question this quarter, one analyst, two weeks.
+`workshop/vibe-analytics-exec-briefing.pptx`.
 
-- **The ablation scored 2/2 baseline and 2/2 with-doc — a +0 delta** that
-  hides the most interesting result: the two responses reached **opposite
-  conclusions** about whether engagement improved (baseline said no, with-doc
-  said yes) because they used different methodologies, items, and populations.
-  Both passed the eval because the assertions measured process transparency,
-  not methodological correctness.
-- **This is a better teaching moment than a clean +50.** The reference doc
-  absolutely changed the answer — it just didn't show up in the score. A
-  third assertion (e.g. "uses Top Box scoring") would have caught it. That's
-  correction harvesting in action.
-- **The Define block worked well** — Rob's spec was sophisticated (Top Box
-  scoring for both scale lengths, 3-point threshold, ENG items only) and the
-  open-assumptions prompt surfaced real choices.
-- **The Validate prediction was half right** — he predicted PASS on "states
-  items" (correct) and FAIL on "addresses scale consistency" (wrong — baseline
-  caught the scale change on its own). Sonnet 5 is good enough to notice
-  `scale_max` without being told. That's a real finding about where skills
-  add value for a capable model.
+### Compensation domain (complete)
+Reference doc (`warehouse/facilitator/compensation.md`) with four Gotchas:
+currency mixing (nearly invisible — averages are ~$65 apart), base vs total
+comp ($16,646 gap), no worker_type column, small-cell suppression. Plus
+step-by-step facilitator walkthrough with 7 verified queries.
 
-### Other materials built today
+### Facilitator walkthroughs for all three domains
+`warehouse/facilitator/{attrition,compensation,engagement}-walkthrough.md` —
+22 queries total, all verified. Each follows the same structure: numbered
+queries in discovery order, "what they should notice" at each step, and a
+ranked summary of discoverable Gotchas.
 
-- **Printable data dictionary** (`workshop/data-dictionary.html` + `.pdf`) —
-  every table, column, row count, categorical value, and date range extracted
-  from the database. Replaces the DuckDB CLI adventure that consumed 20 minutes
-  of a prior session fighting file locks, PATH issues, and smart-quote parser
-  errors. The empty-table list was verified after a first draft fabricated 13
-  of 28 table names from memory (eleventh fabrication in the project).
-- **Full facilitator guide** (`workshop/facilitator-guide.md`) — minute-by-
-  minute script for all 8 blocks, every command in both Windows and Mac/Linux,
-  error lookup table for the ablation script, emergency procedures, quick-
-  reference tables for every file participants touch.
-- **Dry-run runbook** (`workshop/dry-run-runbook.md`) — five-part operational
-  sequence: pre-session smoke test (including run_my_ablation.py's first-ever
-  live API execution, confirmed working), compressed pre-work message, block-
-  by-block facilitator notes with specific "watch for" items, a live timing
-  log, structured debrief questions, and a priority order for post-dry-run
-  fixes.
-- **`run_my_ablation.py` smoke test completed** — first live API execution
-  ever, worked cleanly. Reference doc auto-detection, preflight, baseline vs
-  with-doc comparison all confirmed.
-- **Attrition reference doc** (`attrition.md`) built with all SQL verified.
-  Gotcha 1's numerator was initially stated as "319 Regular separations" —
-  it's 319 all worker types, 241 Regular. Fixed before shipping.
+### Full facilitator guide
+`workshop/facilitator-guide.md` — minute-by-minute script for all 8 blocks,
+every command in both Windows and Mac/Linux variants, error lookup table,
+emergency procedures (including "module not found" as the single most common
+error).
+
+### Framing + Failure Demo facilitator walkthrough
+Slide-by-slide narration script for Blocks 1 and 2 — what to say at each
+slide, timing checks, exact verbatim lines for the demo transitions, and
+three rehearsed recovery lines for API failure, unexpectedly good baseline,
+and worse-than-expected with-skill answer.
+
+### Engagement domain roleplay (complete)
+Full participant walkthrough from Define through Ablation. Key finding: the
+ablation scored 2/2 baseline and 2/2 with-doc (+0 delta) but the two
+responses reached **opposite conclusions** — baseline said engagement hasn't
+improved, with-doc said it has. Same warehouse, same question, different
+methodologies. The eval measured process transparency, not methodological
+correctness. This is the workshop's strongest teaching moment.
+
+### Printable data dictionary
+`workshop/data-dictionary.html` — every table, column, row count, date range,
+and categorical value extracted from the actual database. Replaces the DuckDB
+CLI adventure. The empty-table list was verified after a first draft
+fabricated 13 of 28 names (eleventh fabrication in the project).
+
+### Starter-query handout
+`workshop/starter-queries.html` — pre-written queries for all three domains
+with "Try changing..." prompts. Designed as a fallback for non-SQL
+participants. All 16 queries verified.
+
+### Dry-run runbook
+`workshop/dry-run-runbook.md` — five-part operational sequence. Smoke test
+of `run_my_ablation.py` was started on the work machine today (Anthropic path
+confirmed earlier; OpenAI path in progress).
 
 ---
 
 ## Complete state of the project
 
-**Everything a participant touches is built, verified, and on GitHub:**
-- 11 skills (including the `prv-04` over-firing fix)
-- Synthetic warehouse (44 tables, 11 engineered traps)
-- 29 evals, 6 slices, offline drift verifier
-- Three clean ablation arms (baseline 56%, per-slice 83%, load-all 81%)
-- Pre-work email, Define/Validate/Build worksheets
+**Everything is on GitHub and passes verification:**
+- 11 skills (including `prv-04` fix)
+- Synthetic warehouse (44 tables, 11 traps, fixed seed)
+- 29 evals, 6 slices, 6 negative tests, offline drift verifier
+- Three clean ablation arms (56% → 83% per-slice, 81% load-all)
+- Pre-work email (ZIP-first, proxy workaround, plain-language setup)
+- Define/Validate/Build worksheets (beginner-proofed)
 - Failure-demo script with real captured transcripts
-- Room-scale ablation script (`run_my_ablation.py`)
-- Printable data dictionary
-- 17-slide deck with real measured numbers
-- `check_setup.py`
-
-**Everything a facilitator needs is built and quarantined:**
-- `GROUND_TRUTH.md`
-- Three complete reference docs (attrition, compensation, engagement)
-- Three step-by-step walkthroughs (one per domain)
-- Full facilitator guide with minute-by-minute script
+- Room-scale ablation script (multi-provider: Anthropic/OpenAI/Gemini)
+- Printable data dictionary + starter queries
+- 17-slide workshop deck + 13-slide executive briefing deck
+- Full facilitator guide (minute-by-minute, both OS variants)
 - Dry-run runbook
-
-**Status: materials-complete.** What's left is rehearsal and testing against
-real people, not more building.
+- Complete facilitator safety net (3 reference docs + 3 walkthroughs)
+- `check_setup.py` with multi-Python detection
 
 ---
 
@@ -127,35 +145,19 @@ real people, not more building.
 
 | Priority | Item | Status |
 |---|---|---|
-| 1 | **Push the two pending commits** | Local only — 6 facilitator files |
-| 2 | **Send dry-run pre-work to your confirmed volunteers** | People confirmed, pre-work not sent |
-| 3 | **Run the dry run (Sep 8–12)** | The runbook is at `workshop/dry-run-runbook.md` |
-| 4 | **Fix whatever the dry run surfaces** | Unknown until it happens |
-| 5 | **Send the real pre-work email by Sep 15** | Template at `workshop/pre-work-email.md`, needs `[DATE]` and `[Your name]` |
-| 6 | **Full timed deck read-through, alone, out loud** | Not yet done |
-| 7 | **Print materials** | Data dictionary, 3 worksheets — one copy per participant plus spares |
+| 1 | **Fix the three cleanup items above** | 2-minute task, do first |
+| 2 | **Finish the smoke test on the work machine** | OpenAI path started, not completed |
+| 3 | **Send dry-run pre-work to volunteers** | People confirmed, pre-work not sent |
+| 4 | **Run the dry run (Sep 8–12)** | Runbook at `workshop/dry-run-runbook.md` |
+| 5 | **Fix whatever the dry run surfaces** | Unknown until it happens |
+| 6 | **Send real pre-work email by Sep 15** | Template ready, needs `[DATE]` and `[Your name]` |
+| 7 | **Full timed deck read-through, alone, out loud** | Not yet done |
+| 8 | **Print materials** | Data dictionary, 3 worksheets, starter queries — one per participant + spares |
+| 9 | **Present exec briefing to supervisor** | Deck ready, meeting not scheduled |
 
 ---
 
-## Decisions made today
-
-- **SQL querying via Python scripts, not DuckDB CLI or VS Code extensions.**
-  The CLI had PATH issues, the extension had file locks, and both wasted
-  significant session time. The `explore.py` pattern (one file, `read_only=True`,
-  change the SQL string) works on every platform with no tooling beyond what
-  `requirements.txt` already installs.
-- **All facilitator materials quarantined in `warehouse/facilitator/`.** Not in
-  `references/`, where participants would see completed docs before discovering
-  the Gotchas themselves.
-- **Reference doc auto-detection uses an allowlist, not a blocklist.** A
-  blocklist approach was tried first and broke immediately — `analysis-patterns.md`
-  was silently picked up as a participant's domain doc. An allowlist of the
-  three known domain names (`attrition.md`, `compensation.md`, `engagement.md`)
-  can't be broken by future files landing in `references/`.
-
----
-
-## The fabrication log — now eleven
+## The fabrication log — still eleven
 
 | # | What | Caught by |
 |---|---|---|
@@ -171,15 +173,45 @@ real people, not more building.
 | 10 | Wording fix in ephemeral clone, silently lost | Checking git status |
 | 11 | 13 of 28 empty-table names fabricated | Verification script |
 
-Standing rule, unchanged: **run the query, read the artifact, confirm the
-push.** Eleven for eleven, same root cause.
+Standing rule: **run the query, read the artifact, confirm the push.**
+
+---
+
+## Setup failures — now seven
+
+| # | What | Fix |
+|---|---|---|
+| 1 | pip/python pointing at different interpreters | Always `python -m pip` |
+| 2 | Missing dependency → raw traceback | `check_setup.py` catches it |
+| 3 | Script run from wrong directory | Explicit `cd` in every instruction |
+| 4 | Typo in `--skill` silently ran nothing | Fuzzy matching added |
+| 5 | API credit exhausted mid-run | Preflight check |
+| 6 | VS Code play button uses different Python | "Run from terminal" warning in all materials |
+| 7 | Corporate pip mirror returns 401 | `--index-url https://pypi.org/simple/` |
+
+---
+
+## Key decisions made today
+
+- **Multi-provider support** — the participant script is self-contained and
+  works with any of three providers. The pack's own eval runner
+  (`run_evals.py`) stays Anthropic-only; it's a maintainer tool, not
+  participant-facing.
+- **Beginner-first design** — every participant-facing file now assumes zero
+  SQL/Python/PowerShell knowledge. SQL primer on the worksheet, JSON
+  formatting rules in the Validate worksheet, `explore.py` setup written
+  rather than spoken.
+- **Starter queries as a behind-the-podium fallback** — not handed out by
+  default; given to anyone stuck after a few minutes during Build.
+- **The engagement roleplay's +0 delta** is positioned as a feature, not a
+  failure — it's the strongest teaching moment about eval design and leads
+  directly into the correction-harvesting content in Block 7.
 
 ---
 
 ## Environment
 
-The agent's container resets between sessions. Clone from GitHub and read
-this file first. All verification is offline and free:
+Container resets between sessions. Clone from GitHub, read this file, then:
 
 ```bash
 python check_setup.py
@@ -187,4 +219,4 @@ cd evals && python verify.py
 cd .. && python references/verify_sql.py
 ```
 
-No credentials are stored in this repo, and none should be.
+No credentials stored in the repo, none should be.
