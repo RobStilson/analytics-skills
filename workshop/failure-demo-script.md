@@ -67,9 +67,45 @@ Say to the room:
 > instructions. Then I'm going to ask the exact same question with one skill
 > loaded, and we'll look at the difference."
 
-Have the warehouse connected and ready. If you're running this in Claude Code
-or a similar tool, have it pointed at `warehouse/people_analytics.duckdb`
-already, so you're not fumbling with setup live.
+**This demo uses Claude Code, installed on the facilitator's machine only —
+participants never need this.** Set it up once, before the workshop, not live:
+
+**Install (Windows PowerShell):**
+```powershell
+irm https://claude.ai/install.ps1 | iex
+```
+**Install (Mac/Linux):**
+```bash
+curl -fsSL https://claude.ai/install.sh | bash
+```
+
+**Verify it installed:**
+```
+claude --version
+```
+
+If you already have `ANTHROPIC_API_KEY` set as an environment variable on
+this machine — Claude Code detects it automatically and skips the login
+screen, just asking you to approve the key the first time you run it. If not,
+running `claude` will prompt you to log in with your Claude account instead.
+
+**Open a terminal in the repo folder and start a session:**
+```
+cd path\to\analytics-skills
+claude
+```
+
+Claude Code can already read files and run commands in this folder — it
+doesn't need to be told where the warehouse file is, just asked the question.
+It will find `warehouse/people_analytics.duckdb` itself and write its own
+query.
+
+**Do a dry run of this exact sequence before the workshop, not for the first
+time in front of the room** — confirm it answers cleanly and doesn't wander
+into editing files. This is a read-only question, so that's unlikely, but
+it's one less thing to discover live. If you'd rather not manage an
+interactive session on stage, `claude -p "your question here"` runs one
+question and exits — simpler to narrate, no session to lose track of.
 
 ### Part 1 — no skill (3–4 min)
 

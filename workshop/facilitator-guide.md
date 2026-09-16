@@ -15,6 +15,9 @@ Print this. Bring it on a second screen. Don't wing it.
 
 - [ ] You have run `check_setup.py` yourself and it says **Ready**
 - [ ] You have run `run_my_ablation.py` yourself at least once (smoke test)
+- [ ] You have Claude Code installed and have done a dry run of the failure
+      demo sequence (`workshop/failure-demo-script.md`'s Setup section) —
+      facilitator machine only, participants don't need this
 - [ ] You have done a full timed read-through of the deck, out loud, alone
 - [ ] You have printed the **data dictionary** (`workshop/data-dictionary.html`)
       — one copy per participant plus two spares
