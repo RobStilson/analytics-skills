@@ -367,6 +367,12 @@ con.close()
 
 **Show them how to run it:**
 
+**Say out loud:**
+> "Run this from your terminal — the command line you've been using, not
+> VS Code's green play button. The play button often uses a different
+> Python than the one with your packages installed, and you'll get a
+> 'module not found' error. Terminal, every time."
+
 **Windows:**
 ```powershell
 cd "C:\path\to\analytics-skills"
@@ -398,6 +404,13 @@ printout
 > "Your finished doc goes in the `references` folder. Save it as the name
 > of your domain — `attrition.md`, `compensation.md`, or `engagement.md`.
 > That exact filename matters — the ablation script looks for it by name."
+
+**Keep behind the podium:** a stack of the **Starter Queries** handout
+(`workshop/starter-queries.pdf`, one page per domain). Don't hand it out by
+default — give it to anyone stuck after a few minutes. SQL-literate
+participants get the full discovery experience from the worksheet alone;
+everyone else gets scaffolding that still requires them to run queries and
+read results themselves.
 
 **Then:** circulate actively. This is your most important facilitator time.
 Watch for:
@@ -473,11 +486,11 @@ python3 run_my_ablation.py
 
 | Error message | What it means | Fix |
 |---|---|---|
-| "No eval found at ..." | They didn't save `my-eval.json` in the right place | Save it to `evals/my-eval.json` |
+| "No eval found at ..." | They didn't save `my-eval.json` in the right place | Save it to `evals/my-eval.json`. The script suggests a "Did you mean" filename if it spots a close match — check for a typo like `my-evals.json` (extra s) |
 | "isn't valid JSON" | Syntax error — it says exactly where | Fix the line it points to (usually a trailing comma or wrong quotes) |
 | "No reference doc found" | Their doc isn't named `attrition.md`, `compensation.md`, or `engagement.md` in `references/` | Rename or move it |
-| "ANTHROPIC_API_KEY not set" | Their terminal session lost the key | Re-set it (see the arrival setup commands above) |
-| "credit balance is too low" | Their API account has no credit | Give them one of your spare keys |
+| "No API key found" | They never set an environment variable this terminal session | Re-set it (see the arrival setup commands above) |
+| "Preflight call failed" + "account-level problem (key or credit)" | Their API account has no credit, or the key itself is invalid | Give them one of your spare keys |
 | "Cannot open file ... used by another process" | VS Code's DBCode extension has a lock on the database | Close the database tab in VS Code, or restart VS Code |
 
 ### Once everyone has results
@@ -554,14 +567,21 @@ Listen, ask questions, think about how this applies to their real data.
 
 **For anyone who wants to do it:**
 
-> "Open GitHub in your browser: github.com/RobStilson/analytics-skills.
-> Click 'Fork' in the top right. Then push your reference doc to your fork
-> and open a pull request."
+> "Hand out the cheat sheet — it's eight clicks, all in your browser, no git
+> commands. Open the repo, go to the `references` folder, click 'Add file'
+> then 'Upload files,' drag in your doc, and GitHub handles the rest —
+> it automatically makes you a copy of the repo and sets up the pull
+> request behind the scenes. You never have to click a 'Fork' button
+> yourself."
 
-**If people aren't familiar with git/PRs, simplify:**
-> "If you're not comfortable with git, that's totally fine. Email me your
-> `references/<domain>.md` file and I'll add it to the repo with your name
-> credited."
+Hand out **`workshop/pr-flow-cheat-sheet.pdf`** here — built for a room that's
+never touched git before, table-based layout, verified against GitHub's
+actual current upload behavior rather than a remembered git workflow.
+
+**If people aren't familiar with GitHub at all, simplify further:**
+> "If you're not comfortable making a GitHub account, that's totally fine.
+> Email me your `references/<domain>.md` file and I'll add it to the repo
+> with your name credited."
 
 ### Closing — the last thing you say
 
@@ -646,6 +666,17 @@ fine — say so up front rather than letting people think something broke.
 ---
 
 ## Emergency procedures
+
+### "Module not found" when running explore.py
+
+The single most common error. Two causes:
+
+1. **They used VS Code's play button instead of the terminal.** Fix: run
+   `python explore.py` (or `python3`) from the terminal instead. Say this
+   once to the room at the start of Build — it saves you five individual
+   conversations later.
+2. **Their `python` and `pip` point at different installations.** Fix:
+   `python -m pip install duckdb` — always `python -m pip`, never bare `pip`.
 
 ### Someone's laptop won't cooperate at all
 
