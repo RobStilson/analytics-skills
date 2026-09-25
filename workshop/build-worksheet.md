@@ -15,8 +15,8 @@ and reading the result. You're joining that habit now, not being warned about it
 You'll run database queries using a small Python file. **You don't need to know
 Python or SQL** — you'll copy pre-written queries, paste them in, and run them.
 
-**Create this file once** — open any text editor, paste the following, and save
-it as `explore.py` in the main `analytics-skills` folder (not in a subfolder):
+**Open `explore.py`** in the main `analytics-skills` folder (it's already in
+the repo). You'll see a short script that looks like this:
 
 ```python
 import duckdb
@@ -32,6 +32,9 @@ for row in result:
 con.close()
 ```
 
+The only part you'll change is the SQL between the `"""` marks (the triple
+quotes). Everything else stays the same.
+
 **To run it**, open your terminal (not VS Code's play button — use the
 terminal you ran `check_setup.py` from earlier) and type:
 
@@ -39,9 +42,15 @@ terminal you ran `check_setup.py` from earlier) and type:
 **Mac/Linux:** `python3 explore.py`
 
 You should see rows of data. To try a different query, change only the text
-between the `"""` marks (the triple quotes), save, and run again.
+between the `"""` marks, save, and run again.
 
-**If you're not comfortable with SQL:** use the **Starter Queries** handout.
+**If you get "Cannot open file... being used by another process":** close any
+DuckDB viewer in VS Code. If you clicked on `people_analytics.duckdb` in the
+file explorer, or installed a DuckDB extension, it holds a lock on the file.
+Close that tab, then try running your query again.
+
+**If you're not comfortable with SQL:** use the **Starter Queries** handout
+(printed, or open `workshop/starter-queries.html` from the repo).
 It has pre-written queries for your domain — copy them in, run them, and
 follow the "Try changing..." prompts.
 
@@ -54,6 +63,27 @@ follow the "Try changing..." prompts.
 - `count(*)` = "how many rows"
 - `avg(...)` = "what's the average"
 - `LIMIT 5` = "just show me the first 5 rows"
+
+---
+
+## Before you start — save your reference doc
+
+Copy the template to a file named after your domain:
+
+| Domain | Save as |
+|---|---|
+| **Attrition** | `references/attrition.md` |
+| **Compensation** | `references/compensation.md` |
+| **Engagement** | `references/engagement.md` |
+
+**Windows:** `copy references\domain-doc-template.md references\attrition.md`
+**Mac/Linux:** `cp references/domain-doc-template.md references/attrition.md`
+
+(Replace `attrition` with your domain name.)
+
+**Edit your copy, not the template.** The ablation script in the last block
+looks for a file with your domain's exact name — if it's called anything else,
+it won't find it.
 
 ---
 

@@ -111,11 +111,11 @@ bracket matters:
 
 **To check if your file is valid**, run this in your terminal:
 
-**Windows:** `python -c "import json; json.load(open('evals/my-eval.json')); print('Valid!')"`
-**Mac/Linux:** `python3 -c "import json; json.load(open('evals/my-eval.json')); print('Valid!')"`
+**Windows:** `python check_eval.py`
+**Mac/Linux:** `python3 check_eval.py`
 
-If it prints "Valid!" you're good. If it shows an error, it will point to the
-exact line and character that's wrong — usually a missing comma or quote.
+It checks the structure, tells you exactly what's wrong if anything, and
+confirms you're ready to run the ablation. If it says "Ready," you're good.
 
 ---
 
