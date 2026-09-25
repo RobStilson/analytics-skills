@@ -57,9 +57,10 @@ contribute one:
 
 ## Evals matter more than skills right now
 
-The pack has nine skills and no eval coverage. A skill without an eval is an
-assertion. If you use these and find a case where a skill helped — or failed to —
-that case is worth more than another skill file.
+The pack has eleven skills and 29 evals across six slices — but eval coverage
+is still uneven, and a skill without an eval is an assertion. If you use these
+and find a case where a skill helped — or failed to — that case is worth more
+than another skill file.
 
 Eval format:
 
