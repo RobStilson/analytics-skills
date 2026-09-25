@@ -1,123 +1,50 @@
-# Handoff — 2026-09-09 (end of day)
+# Handoff — 2026-09-25 (end of day)
 
 **Project:** Vibe Analytics workshop + `analytics-skills` repo
-**Conference:** 2026-09-29 · **Materials due:** 2026-09-16
-**Dry run:** Sep 8–12 (in progress — smoke test started on work machine today)
+**Conference:** 2026-09-29 (4 days away)
 **Repo:** https://github.com/RobStilson/analytics-skills (public)
 
 ---
 
-## FIRST: three cleanup items on GitHub
+## What was done today
 
-These are on GitHub right now and should be fixed before the dry run:
+### Full beginner-friendliness review of all participant materials
+Systematic review of every participant-facing file on GitHub, assuming zero
+Python/SQL/JSON knowledge. 12 findings organized by severity (Critical, High,
+Medium, Low). All Critical and High fixes implemented.
 
-| Issue | File | Fix |
+### Fixes applied (2 commits, not yet pushed from this session)
+
+**Commit `7b21d4b`: Fix beginner-friendliness issues found in workshop review**
+
+| Change | File | What |
 |---|---|---|
-| **Answer key leaked into participant space** | `references/engagement.md` | Move to `warehouse/facilitator/engagement.md` (it's already there too — just delete the `references/` copy) |
-| **Leftover roleplay artifact** | `workshop/my-define-spec.md` | Delete — this was Rob's own Define spec from the engagement walkthrough, not a participant file |
-| **Leftover exploration script** | `references/explore_duckdb.py` | Delete — participants create their own `explore.py` in the repo root per the Build worksheet |
+| `explore.py` replaced | `explore.py` | Was a complex engagement query with CASE expressions, JOINs, scale normalization — intimidating for beginners. Replaced with the simple starter template matching the build worksheet |
+| Build worksheet updated | `workshop/build-worksheet.md` | (1) "Create this file" → "Open `explore.py` — it's already in the repo"; (2) Added "Before you start — save your reference doc" section with save-as table and exact copy commands; (3) Added DuckDB file-lock warning and Starter Queries file path |
+| Validate worksheet updated | `workshop/validate-worksheet.md` | Replaced one-liner JSON validation commands with `check_eval.py` reference |
+| `check_eval.py` created | `check_eval.py` | Friendly eval validator (~170 lines). Zero-dependency, ANSI colors with Windows fallback. Checks file exists, valid JSON, has `evals` list, first eval has `prompt` and `assertions`. Gives specific fix suggestions for common JSON mistakes |
+| CONTRIBUTING.md updated | `CONTRIBUTING.md` | "nine skills and no eval coverage" → "eleven skills and 29 evals across six slices" |
 
-```powershell
-cd "C:\Agentic AI\Skills\analytics-skills"
-Remove-Item references\engagement.md
-Remove-Item workshop\my-define-spec.md
-Remove-Item references\explore_duckdb.py
-git add -A
-git commit -m "Remove leaked answer key and leftover artifacts"
-git push
-```
+**Commit `f2524cc`: Regenerate build and validate worksheet PDFs**
 
----
+| Change | File | What |
+|---|---|---|
+| Build PDF regenerated | `workshop/build-worksheet.pdf` | 3-page PDF reflecting all markdown changes |
+| Validate PDF regenerated | `workshop/validate-worksheet.pdf` | 4-page PDF reflecting all markdown changes |
+| HTML sources added | `workshop/build-worksheet.html`, `workshop/validate-worksheet.html` | Source files for PDF generation, styled to match existing workshop design system |
 
-## What was built today
+### ⚠️ Commits exist locally but could NOT be pushed
 
-### Multi-provider ablation script
-`run_my_ablation.py` now supports Anthropic, OpenAI, and Gemini — auto-
-detected from whichever API key is set. Fully self-contained (no longer
-imports from `run_evals.py`). Includes fuzzy filename matching for typos
-(`my-evals.json` → "Did you mean: my-evals.json"). Triggered by Rob's work
-machine not having Anthropic access.
+This session lacks push access to `RobStilson/analytics-skills`. The commits
+exist in the cloud container (which is ephemeral), and the PDFs were sent
+directly to Rob. He needs to:
 
-**The OpenAI and Gemini paths have NOT been tested against live APIs.** The
-Anthropic path is proven. Rob's work machine with an OpenAI key is the first
-real test of the OpenAI path — results not yet available.
+1. Drop the 4 files (2 PDFs + 2 HTMLs) into `workshop/` locally
+2. Commit and push from his machine
 
-### Beginner-proofing of all participant materials
-Systematic audit of every participant-facing file assuming zero SQL, Python,
-or PowerShell knowledge. 15 issues found and fixed:
-
-- Pre-work email: ZIP download is now primary, git is the alternative;
-  "environment variable" explained in plain language
-- Validate worksheet: "eval," "assertion," and "JSON" defined in a glossary
-  before first use; JSON formatting rules made explicit
-- Build worksheet: `explore.py` setup written on the worksheet itself (not
-  only delivered verbally); 30-second SQL primer added; starter queries
-  referenced as fallback
-- Define worksheet: "grain" and "as-of convention" defined in plain language
-- Data dictionary: "fan-out" → "multiple rows per person"; "decoys" →
-  "deliberately empty"; "immortal time bias" → "survival bias"
-- Starter queries: SQL reading guide added
-
-### Corporate proxy workaround
-Added `--index-url https://pypi.org/simple/` guidance to the pre-work email,
-facilitator guide, and dry-run runbook after hitting a 401 from Lockheed's
-internal pip mirror (`nexus.global.lmco.com`) on the work machine. Seventh
-setup failure documented.
-
-### Executive briefing deck
-13-slide deck for Rob's supervisor on adopting the approach at Lockheed
-Martin. Frames the problem in HR terms, shows the measured results with
-honest caveats, includes a before/after demo, and lands on a specific ask:
-pick one recurring PA question this quarter, one analyst, two weeks.
-`workshop/vibe-analytics-exec-briefing.pptx`.
-
-### Compensation domain (complete)
-Reference doc (`warehouse/facilitator/compensation.md`) with four Gotchas:
-currency mixing (nearly invisible — averages are ~$65 apart), base vs total
-comp ($16,646 gap), no worker_type column, small-cell suppression. Plus
-step-by-step facilitator walkthrough with 7 verified queries.
-
-### Facilitator walkthroughs for all three domains
-`warehouse/facilitator/{attrition,compensation,engagement}-walkthrough.md` —
-22 queries total, all verified. Each follows the same structure: numbered
-queries in discovery order, "what they should notice" at each step, and a
-ranked summary of discoverable Gotchas.
-
-### Full facilitator guide
-`workshop/facilitator-guide.md` — minute-by-minute script for all 8 blocks,
-every command in both Windows and Mac/Linux variants, error lookup table,
-emergency procedures (including "module not found" as the single most common
-error).
-
-### Framing + Failure Demo facilitator walkthrough
-Slide-by-slide narration script for Blocks 1 and 2 — what to say at each
-slide, timing checks, exact verbatim lines for the demo transitions, and
-three rehearsed recovery lines for API failure, unexpectedly good baseline,
-and worse-than-expected with-skill answer.
-
-### Engagement domain roleplay (complete)
-Full participant walkthrough from Define through Ablation. Key finding: the
-ablation scored 2/2 baseline and 2/2 with-doc (+0 delta) but the two
-responses reached **opposite conclusions** — baseline said engagement hasn't
-improved, with-doc said it has. Same warehouse, same question, different
-methodologies. The eval measured process transparency, not methodological
-correctness. This is the workshop's strongest teaching moment.
-
-### Printable data dictionary
-`workshop/data-dictionary.html` — every table, column, row count, date range,
-and categorical value extracted from the actual database. Replaces the DuckDB
-CLI adventure. The empty-table list was verified after a first draft
-fabricated 13 of 28 names (eleventh fabrication in the project).
-
-### Starter-query handout
-`workshop/starter-queries.html` — pre-written queries for all three domains
-with "Try changing..." prompts. Designed as a fallback for non-SQL
-participants. All 16 queries verified.
-
-### Dry-run runbook
-`workshop/dry-run-runbook.md` — five-part operational sequence. Smoke test
-of `run_my_ablation.py` was started on the work machine today (Anthropic path
-confirmed earlier; OpenAI path in progress).
+If the container has been reclaimed, the markdown changes are already on
+GitHub from a previous push (commit `7b21d4b`), but the PDFs and HTML source
+files need to be regenerated or placed manually.
 
 ---
 
@@ -129,7 +56,9 @@ confirmed earlier; OpenAI path in progress).
 - 29 evals, 6 slices, 6 negative tests, offline drift verifier
 - Three clean ablation arms (56% → 83% per-slice, 81% load-all)
 - Pre-work email (ZIP-first, proxy workaround, plain-language setup)
-- Define/Validate/Build worksheets (beginner-proofed)
+- Define/Validate/Build worksheets (beginner-proofed, PDFs regenerated)
+- `check_eval.py` — friendly eval validator for participants
+- `explore.py` — simple starter template (no longer the complex engagement query)
 - Failure-demo script with real captured transcripts
 - Room-scale ablation script (multi-provider: Anthropic/OpenAI/Gemini)
 - Printable data dictionary + starter queries
@@ -145,15 +74,12 @@ confirmed earlier; OpenAI path in progress).
 
 | Priority | Item | Status |
 |---|---|---|
-| 1 | **Fix the three cleanup items above** | 2-minute task, do first |
-| 2 | **Finish the smoke test on the work machine** | OpenAI path started, not completed |
-| 3 | **Send dry-run pre-work to volunteers** | People confirmed, pre-work not sent |
-| 4 | **Run the dry run (Sep 8–12)** | Runbook at `workshop/dry-run-runbook.md` |
-| 5 | **Fix whatever the dry run surfaces** | Unknown until it happens |
-| 6 | **Send real pre-work email by Sep 15** | Template ready, needs `[DATE]` and `[Your name]` |
-| 7 | **Full timed deck read-through, alone, out loud** | Not yet done |
-| 8 | **Print materials** | Data dictionary, 3 worksheets, starter queries — one per participant + spares |
-| 9 | **Present exec briefing to supervisor** | Deck ready, meeting not scheduled |
+| 1 | **Push PDF/HTML files from local machine** | PDFs sent to Rob, needs local commit+push |
+| 2 | **Send pre-work email** | Template ready, needs `[DATE]` and `[Your name]` filled in — 10+ days past recommended send date |
+| 3 | **Prepare 2–3 spare API keys** | With credit loaded, for participants whose keys fail |
+| 4 | **Full timed deck read-through, alone, out loud** | Not yet done |
+| 5 | **Print materials** | Data dictionary, 3 worksheets, starter queries — one per participant + spares |
+| 6 | **Verify `claude-sonnet-5` is the correct current API model string** | Used in `run_my_ablation.py` — may have changed since materials were written |
 
 ---
 
@@ -177,7 +103,7 @@ Standing rule: **run the query, read the artifact, confirm the push.**
 
 ---
 
-## Setup failures — now seven
+## Setup failures — still seven
 
 | # | What | Fix |
 |---|---|---|
@@ -191,21 +117,16 @@ Standing rule: **run the query, read the artifact, confirm the push.**
 
 ---
 
-## Key decisions made today
+## PDF generation notes (for next time)
 
-- **Multi-provider support** — the participant script is self-contained and
-  works with any of three providers. The pack's own eval runner
-  (`run_evals.py`) stays Anthropic-only; it's a maintainer tool, not
-  participant-facing.
-- **Beginner-first design** — every participant-facing file now assumes zero
-  SQL/Python/PowerShell knowledge. SQL primer on the worksheet, JSON
-  formatting rules in the Validate worksheet, `explore.py` setup written
-  rather than spoken.
-- **Starter queries as a behind-the-podium fallback** — not handed out by
-  default; given to anyone stuck after a few minutes during Build.
-- **The engagement roleplay's +0 delta** is positioned as a feature, not a
-  failure — it's the strongest teaching moment about eval design and leads
-  directly into the correction-harvesting content in Block 7.
+LibreOffice HTML→PDF conversion quirks that matter:
+- **No flexbox** — LibreOffice ignores it; use plain block layout
+- **No `position: absolute`** — renders at wrong position
+- **Page breaks:** use `<p style="page-break-before: always; margin: 0; padding: 0; font-size: 1pt;">&nbsp;</p>`
+- **`<pre>` blocks** get extra line-height (cosmetic, not broken)
+- **CSS design system** matches `starter-queries.html`: Segoe UI 9pt body, Cambria serif headings, blue `#2563EB` h2s, Consolas 8pt code, orange `.warn` boxes, green `.note` boxes
+
+Command: `libreoffice --headless --convert-to pdf <file>.html`
 
 ---
 
