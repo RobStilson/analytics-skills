@@ -1,50 +1,85 @@
-# Handoff — 2026-09-25 (end of day)
+# Handoff — 2026-09-28 (end of day)
 
 **Project:** Vibe Analytics workshop + `analytics-skills` repo
-**Conference:** 2026-09-29 (4 days away)
+**Conference:** 2026-10-01 (3 days away)
 **Repo:** https://github.com/RobStilson/analytics-skills (public)
 
 ---
 
 ## What was done today
 
-### Full beginner-friendliness review of all participant materials
-Systematic review of every participant-facing file on GitHub, assuming zero
-Python/SQL/JSON knowledge. 12 findings organized by severity (Critical, High,
-Medium, Low). All Critical and High fixes implemented.
+### Session 1 (continued from 9/25 context)
 
-### Fixes applied (2 commits, not yet pushed from this session)
+**Workshop Q&A preparation** — Prepared facilitator-ready answers for:
+- Block 7 (correction harvesting): manual trigger → agent executes → detection can be partially automated via scheduled scanning
+- Block 8 (GitHub fork/upload flow): participants upload to GitHub, it makes a copy and sets up the PR
 
-**Commit `7b21d4b`: Fix beginner-friendliness issues found in workshop review**
+**SQL output walkthrough** — Mapped raw `fct_compensation` query output to the Data Dictionary handout column by column, with `.fetchdf()` vs `.fetchall()` guidance.
 
-| Change | File | What |
+**Sample outputs reference doc** — Created `workshop/sample-outputs.md`:
+every populated table's 5-row sample output using `.fetchdf()`, organized
+into domain starting tables, shared tables, and misleading tables. Column
+explanations and trap callouts for each.
+
+**Starter queries update** — Updated `workshop/starter-queries.html`:
+- Added `.fetchdf()` tip to the how-to box
+- Added green "Here's what you'll see" note boxes with sample output after each domain's Query 1
+- Added "Shared Tables — What They Look Like" section (5 tables)
+- Added "Tables That Look Useful But Will Mislead You" section (4 tables)
+- All existing content preserved
+- Regenerated `workshop/starter-queries.pdf` (10 pages, 183KB, visually verified)
+
+### Session 2 (this afternoon)
+
+**Engagement domain answer key** — Full set of worked examples for "Has
+engagement improved by 5% year over year?", kept local as facilitator
+fallback (not pushed to public repo):
+
+| File | Purpose |
+|---|---|
+| `workshop/EXAMPLE-define-worksheet-engagement.md` | Filled-in Define worksheet — population choices, scale ambiguity, "5% means what?" |
+| `workshop/EXAMPLE-build-worksheet-engagement.md` | Filled-in Build worksheet — real query output, both gotchas (scale trap: fake +33% vs actual -3.11pp; row ≠ respondent), Do/Don't SQL pairs |
+| `workshop/EXAMPLE-validate-worksheet-engagement.md` | Filled-in Validate worksheet — 3 assertions, eval JSON, predictions (baseline passes 1/3) |
+| `workshop/engagement-eval.json` | Pre-built eval for Block 6 ablation demo |
+
+**Key engagement numbers (all verified against the warehouse):**
+
+| Metric | Value |
+|---|---|
+| Naive raw AVG, April 2024 → April 2025 | 3.23 → 4.30 (+33% — **wrong**, caused by scale change) |
+| Normalized, April 2024 → April 2025 | 64.50% → 61.39% (-3.11 pp — **correct**) |
+| Normalized, April 2025 → April 2026 | 61.39% → 61.97% (+0.58 pp — modest recovery) |
+| Answer to the question | **No** — engagement has not improved by 5 pp YoY |
+
+**Facilitator cheat sheet for Block 5 circulating:**
+
+| Domain | First trap they'll hit | Second trap |
 |---|---|---|
-| `explore.py` replaced | `explore.py` | Was a complex engagement query with CASE expressions, JOINs, scale normalization — intimidating for beginners. Replaced with the simple starter template matching the build worksheet |
-| Build worksheet updated | `workshop/build-worksheet.md` | (1) "Create this file" → "Open `explore.py` — it's already in the repo"; (2) Added "Before you start — save your reference doc" section with save-as table and exact copy commands; (3) Added DuckDB file-lock warning and Starter Queries file path |
-| Validate worksheet updated | `workshop/validate-worksheet.md` | Replaced one-liner JSON validation commands with `check_eval.py` reference |
-| `check_eval.py` created | `check_eval.py` | Friendly eval validator (~170 lines). Zero-dependency, ANSI colors with Windows fallback. Checks file exists, valid JSON, has `evals` list, first eval has `prompt` and `assertions`. Gives specific fix suggestions for common JSON mistakes |
-| CONTRIBUTING.md updated | `CONTRIBUTING.md` | "nine skills and no eval coverage" → "eleven skills and 29 evals across six slices" |
+| Engagement | Scale 5→7 across waves | Row count ≠ respondent count (6× inflation) |
+| Compensation | USD/EUR/SGD mixed in one column | Historical rows mixed with current |
+| Attrition | Contingent + interns included | No denominator for rate; must choose headcount definition |
 
-**Commit `f2524cc`: Regenerate build and validate worksheet PDFs**
+**"What to do Monday" talking points** for Block 7/8 wrap:
+1. Pick one repeated question, write a question spec for it
+2. Find the table everyone uses, document one gotcha in Do/Don't format
+3. Run with and without the doc, show someone the side-by-side
 
-| Change | File | What |
-|---|---|---|
-| Build PDF regenerated | `workshop/build-worksheet.pdf` | 3-page PDF reflecting all markdown changes |
-| Validate PDF regenerated | `workshop/validate-worksheet.pdf` | 4-page PDF reflecting all markdown changes |
-| HTML sources added | `workshop/build-worksheet.html`, `workshop/validate-worksheet.html` | Source files for PDF generation, styled to match existing workshop design system |
+---
 
-### ⚠️ Commits exist locally but could NOT be pushed
+## What's on GitHub vs. what's local-only
 
-This session lacks push access to `RobStilson/analytics-skills`. The commits
-exist in the cloud container (which is ephemeral), and the PDFs were sent
-directly to Rob. He needs to:
+### On GitHub (public, participants can see)
+- `workshop/starter-queries.html` and `.pdf` (updated with sample outputs)
+- `workshop/sample-outputs.md`
+- `workshop/EXAMPLE-define-worksheet-headcount.md`
+- Everything from prior sessions (skills, warehouse, evals, worksheets, etc.)
 
-1. Drop the 4 files (2 PDFs + 2 HTMLs) into `workshop/` locally
-2. Commit and push from his machine
-
-If the container has been reclaimed, the markdown changes are already on
-GitHub from a previous push (commit `7b21d4b`), but the PDFs and HTML source
-files need to be regenerated or placed manually.
+### Local only (answer key — NOT on GitHub)
+- `workshop/EXAMPLE-define-worksheet-engagement.md`
+- `workshop/EXAMPLE-build-worksheet-engagement.md`
+- `workshop/EXAMPLE-validate-worksheet-engagement.md`
+- `workshop/engagement-eval.json`
+- `references/engagement.md` (seen as untracked on Rob's machine)
 
 ---
 
@@ -58,28 +93,30 @@ files need to be regenerated or placed manually.
 - Pre-work email (ZIP-first, proxy workaround, plain-language setup)
 - Define/Validate/Build worksheets (beginner-proofed, PDFs regenerated)
 - `check_eval.py` — friendly eval validator for participants
-- `explore.py` — simple starter template (no longer the complex engagement query)
+- `explore.py` — simple starter template
 - Failure-demo script with real captured transcripts
 - Room-scale ablation script (multi-provider: Anthropic/OpenAI/Gemini)
-- Printable data dictionary + starter queries
+- Printable data dictionary + starter queries (now with sample outputs)
 - 17-slide workshop deck + 13-slide executive briefing deck
 - Full facilitator guide (minute-by-minute, both OS variants)
 - Dry-run runbook
 - Complete facilitator safety net (3 reference docs + 3 walkthroughs)
 - `check_setup.py` with multi-Python detection
 
+**Plus local-only engagement answer key** (4 files, described above)
+
 ---
 
-## What's left before September 29
+## What's left before October 1
 
 | Priority | Item | Status |
 |---|---|---|
-| 1 | **Push PDF/HTML files from local machine** | PDFs sent to Rob, needs local commit+push |
-| 2 | **Send pre-work email** | Template ready, needs `[DATE]` and `[Your name]` filled in — 10+ days past recommended send date |
-| 3 | **Prepare 2–3 spare API keys** | With credit loaded, for participants whose keys fail |
-| 4 | **Full timed deck read-through, alone, out loud** | Not yet done |
-| 5 | **Print materials** | Data dictionary, 3 worksheets, starter queries — one per participant + spares |
-| 6 | **Verify `claude-sonnet-5` is the correct current API model string** | Used in `run_my_ablation.py` — may have changed since materials were written |
+| 1 | **Send pre-work email** | Template ready, needs `[DATE]` and `[Your name]` filled in |
+| 2 | **Prepare 2–3 spare API keys** | With credit loaded, for participants whose keys fail |
+| 3 | **Full timed deck read-through, alone, out loud** | Not yet done |
+| 4 | **Print materials** | Data dictionary, 3 worksheets, starter queries — one per participant + spares |
+| 5 | **Verify `claude-sonnet-5` is the correct current API model string** | Used in `run_my_ablation.py` — may have changed since materials were written |
+| 6 | **Smoke test ablation demo with engagement eval** | Copy `engagement-eval.json` to `evals/my-eval.json`, ensure `references/engagement.md` exists, run `python workshop/run_my_ablation.py` |
 
 ---
 
