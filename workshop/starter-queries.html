@@ -48,6 +48,11 @@ Replace the SQL inside the triple quotes with the query below. Save. Run:
 <strong>Windows:</strong> <code>python explore.py</code> &nbsp;&nbsp;
 <strong>Mac/Linux:</strong> <code>python3 explore.py</code>
 <br><br>
+<strong>Getting column names:</strong> Change <code>.fetchall()</code> to
+<code>.fetchdf()</code> in your <code>explore.py</code> and print with
+<code>print(df.to_string())</code>. This gives you a labeled table instead of
+bare tuples — much easier to read.
+<br><br>
 Each query has a <em style="color:#E8663C;">"Try changing..."</em> prompt.
 That's where the discovery happens — the Gotcha you need for your reference
 doc shows up when you modify the query and the number moves (or doesn't)
@@ -82,6 +87,25 @@ Tables: <code>fct_separation</code>, <code>rpt_attrition_monthly</code>,
 <div class="step-head">Query 1 — Look at the raw data</div>
 <pre>SELECT * FROM fct_separation LIMIT 5</pre>
 <div class="step-why">Notice which columns exist. What types of workers are in here?</div>
+</div>
+
+<div class="note">
+<strong>Here's what you'll see</strong> (using <code>.fetchdf()</code>):<br><br>
+<pre style="background:none; border:none; padding:0; margin:0; font-size:7.5pt;">  worker_id employee_number separation_date separation_type  is_regrettable org_unit_v2 worker_type separation_id
+0   W100003         E100003      2026-03-25     Involuntary           False     OU-1100     Regular      SP000001
+1   W100006         E100006      2026-03-18       Voluntary           False     OU-2100     Regular      SP000002
+2   W100009         E100009      2024-04-28       Voluntary           False     OU-4000     Regular      SP000003
+3   W100017         E100017      2025-06-24       Voluntary           False     OU-4200     Regular      SP000004
+4   W100026         E100026      2025-02-07       Voluntary           False     OU-4100     Regular      SP000005</pre>
+<br>
+<strong>Reading the columns:</strong>
+<code>worker_id</code> / <code>employee_number</code> = who left.
+<code>separation_type</code> = Voluntary (686) or Involuntary (240).
+<code>is_regrettable</code> = the org's judgment — true (231) or false (695).
+<code>worker_type</code> = Regular (717), Contingent (177), Intern (32) — contractors are in here too.
+<br><br>
+<strong>Key thing:</strong> This table has the numerator (separations) but <em>no denominator</em>
+(headcount). You can't compute a rate from this table alone.
 </div>
 
 <div class="step">
@@ -132,6 +156,26 @@ Table: <code>fct_compensation</code>
 <div class="step-head">Query 1 — Look at the raw data</div>
 <pre>SELECT * FROM fct_compensation LIMIT 5</pre>
 <div class="step-why">Notice the columns. What currency are the salary figures in?</div>
+</div>
+
+<div class="note">
+<strong>Here's what you'll see</strong> (using <code>.fetchdf()</code>):<br><br>
+<pre style="background:none; border:none; padding:0; margin:0; font-size:7.5pt;">      comp_id worker_id effective_date  base_salary_local currency_code  target_bonus_pct pay_grade
+0  CMP0000001   W100000     2026-08-02            96900.0           USD             0.127        G5
+1  CMP0000002   W100001     2025-04-15           140800.0           USD             0.169        G5
+2  CMP0000003   W100002     2024-01-17           130500.0           USD             0.218        G8
+3  CMP0000004   W100003     2025-10-23           190500.0           EUR             0.176        G8
+4  CMP0000005   W100004     2023-06-08           126600.0           USD             0.145        G7</pre>
+<br>
+<strong>Reading the columns:</strong>
+<code>worker_id</code> = who this salary belongs to (joins to <code>dim_worker</code>).
+<code>effective_date</code> = when this salary took effect — dates span 2021–2026.
+<code>base_salary_local</code> = salary in <em>local</em> currency — check the next column.
+<code>currency_code</code> = USD (4,291), EUR (516), SGD (487).
+<code>target_bonus_pct</code> = bonus target as a decimal (0.127 = 12.7%).
+<br><br>
+<strong>Spot the trap:</strong> Row 3 is <strong>EUR</strong>, not USD. A naive <code>AVG(base_salary_local)</code>
+blends dollars, euros, and Singapore dollars into one meaningless number.
 </div>
 
 <div class="step">
@@ -188,6 +232,26 @@ Table: <code>fct_engagement_survey</code>
 <div class="step-why">Notice the columns. How many items per person? What's the last column?</div>
 </div>
 
+<div class="note">
+<strong>Here's what you'll see</strong> (using <code>.fetchdf()</code>, first 5 rows):<br><br>
+<pre style="background:none; border:none; padding:0; margin:0; font-size:7.5pt;">  response_id  wave_date worker_id item_code  response_value  scale_max
+0  RS00000001 2023-04-15   W105183     ENG01               4          5
+1  RS00000002 2023-04-15   W105183     ENG02               4          5
+2  RS00000003 2023-04-15   W105183     ENG03               5          5
+3  RS00000004 2023-04-15   W105183     MGR01               5          5
+4  RS00000005 2023-04-15   W105183     MGR02               4          5</pre>
+<br>
+<strong>Reading the columns:</strong>
+<code>wave_date</code> = which survey wave (7 waves, 2023–2026).
+<code>item_code</code> = which question (ENG01–03, GRW01, MGR01–02) — each person has up to 6 rows per wave.
+<code>response_value</code> = their answer. <strong>But look at <code>scale_max</code>.</strong>
+<code>scale_max</code> = 5 (in 2023–24) or 7 (in 2025–26).
+<br><br>
+<strong>Spot the trap:</strong> A "4 out of 5" (80%) is not the same as a "4 out of 7" (57%).
+The scale changed mid-stream. Averaging raw <code>response_value</code> across years shows
+engagement "declining" even if sentiment didn't change.
+</div>
+
 <div class="step">
 <div class="step-head">Query 2 — The naive trend</div>
 <pre>SELECT year(wave_date) AS yr,
@@ -223,6 +287,143 @@ ORDER BY 1</pre>
 </div>
 
 <div class="warn"><strong>Your Gotcha is in Query 2 → Query 3.</strong> The jump that looked like improvement might be something else entirely. Write it up.</div>
+
+<!-- ============================================================ -->
+<h2 class="pagebreak">Shared Tables — What They Look Like</h2>
+<p style="font-size:8pt; color:#5A6B7A; margin-bottom:6pt;">
+Every domain joins to these. Run <code>SELECT * FROM table_name LIMIT 5</code>
+to see them yourself.
+</p>
+
+<div class="step">
+<div class="step-head">dim_worker_snapshot — the main headcount table</div>
+<p style="font-size:8pt; color:#5A6B7A; margin-bottom:3pt;">97,705 rows · one row per worker per month-end · 42 monthly snapshots</p>
+<pre style="font-size:7.5pt;">  snapshot_date worker_id employee_number worker_type employment_status org_unit_v2 department location_id job_profile_id  hire_date  fte
+0    2026-05-31   W100000         E100000      Intern            Active     OU-2000      Sales      LOC007          JP-04 2026-05-04  1.0
+1    2026-06-30   W100000         E100000      Intern            Active     OU-2000        NaN      LOC007          JP-04 2026-05-04  1.0
+2    2025-01-31   W100001         E100001  Contingent            Active     OU-2200        NaN      LOC003          JP-01 2025-01-15  1.0
+3    2025-02-28   W100001         E100001  Contingent            Active     OU-2200  Marketing      LOC003          JP-01 2025-01-15  1.0
+4    2025-03-31   W100001         E100001  Contingent            Active     OU-2200  Marketing      LOC003          JP-01 2025-01-15  1.0</pre>
+<div class="warn"><strong>Three things to see right away:</strong>
+(1) Same person in rows 0 and 1 — without <code>WHERE snapshot_date =</code> you get 97,705 rows instead of ~4,300.
+(2) <code>department</code> has NaN values — only 54% populated, use <code>org_unit_v2</code> instead.
+(3) Rows 0–2 include an Intern and a Contingent worker — filter <code>worker_type = 'Regular'</code> for "employees."
+</div>
+</div>
+
+<div class="step">
+<div class="step-head">dim_worker — current-state worker table</div>
+<p style="font-size:8pt; color:#5A6B7A; margin-bottom:3pt;">5,294 rows · one row per worker</p>
+<pre style="font-size:7.5pt;">  worker_id employee_number worker_type org_unit_v2 location_id job_profile_id  hire_date employment_status   department
+0   W100000         E100000      Intern     OU-2000      LOC007          JP-04 2026-05-04            Active          NaN
+1   W100001         E100001  Contingent     OU-2200      LOC003          JP-01 2025-01-15            Active    Marketing
+2   W100002         E100002     Regular     OU-2200      LOC003          JP-07 2023-10-19            Active    Marketing
+3   W100003         E100003     Regular     OU-1100      LOC005          JP-16 2025-07-25        Terminated  Engineering
+4   W100004         E100004     Regular     OU-4000      LOC002          JP-02 2023-03-10            Active          NaN</pre>
+<p style="font-size:8pt; margin-top:3pt;">One row per worker, current state. Simpler than the snapshot, but no history.
+<strong>Terminated workers are in here</strong> (row 3) — this is not an "active workers" table.</p>
+</div>
+
+<div class="step">
+<div class="step-head">dim_org_unit — org hierarchy lookup</div>
+<p style="font-size:8pt; color:#5A6B7A; margin-bottom:3pt;">15 rows · one row per org unit</p>
+<pre style="font-size:7.5pt;">  org_unit_v2         org_unit_name     org_group   department
+0     OU-1000           Engineering    Technology  Engineering
+1     OU-1100  Platform Engineering    Technology  Engineering
+2     OU-1200      Data & Analytics    Technology  Engineering
+3     OU-1300  Security Engineering    Technology          NaN
+4     OU-2000                 Sales  Go-To-Market        Sales</pre>
+<p style="font-size:8pt; margin-top:3pt;">Join on <code>org_unit_v2</code> to get names.
+<strong>OU-1300, OU-3300, and OU-4200 have no <code>department</code> mapping</strong> — three
+org units vanish if you group by <code>department</code>.</p>
+</div>
+
+<div class="step">
+<div class="step-head">dim_job_profile — job title lookup</div>
+<p style="font-size:8pt; color:#5A6B7A; margin-bottom:3pt;">20 rows · one row per job profile</p>
+<pre style="font-size:7.5pt;">  job_profile_id                 job_title            job_category  job_level
+0          JP-01       Software Engineer I  Individual Contributor          1
+1          JP-02      Software Engineer II  Individual Contributor          2
+2          JP-03  Senior Software Engineer  Individual Contributor          3
+3          JP-04            Staff Engineer  Individual Contributor          4
+4          JP-05       Engineering Manager          People Manager          4</pre>
+<p style="font-size:8pt; margin-top:3pt;">Join on <code>job_profile_id</code> for titles. <code>job_category</code>
+is Individual Contributor or People Manager.</p>
+</div>
+
+<div class="step">
+<div class="step-head">dim_location — location lookup</div>
+<p style="font-size:8pt; color:#5A6B7A; margin-bottom:3pt;">7 rows · one row per location</p>
+<pre style="font-size:7.5pt;">  location_id     city state_province country_code    region
+0      LOC001  Atlanta             GA           US  Americas
+1      LOC002   Denver             CO           US  Americas
+2      LOC003   Boston             MA           US  Americas
+3      LOC004   Austin             TX           US  Americas
+4      LOC005   Dublin            NaN           IE      EMEA</pre>
+<p style="font-size:8pt; margin-top:3pt;">Join on <code>location_id</code>. Seven locations, three regions.
+Non-US locations have NaN for <code>state_province</code> and different currencies in comp.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 class="pagebreak">Tables That Look Useful But Will Mislead You</h2>
+<p style="font-size:8pt; color:#5A6B7A; margin-bottom:6pt;">
+These exist in the warehouse on purpose — the kind of table in every real data
+environment that's not wrong enough to delete and not right enough to trust.
+</p>
+
+<div class="step">
+<div class="step-head">rpt_headcount_daily — stale rollup</div>
+<pre style="font-size:7.5pt;">  as_of_date org_unit_v2  headcount
+0 2023-01-31     OU-1000         78
+1 2023-01-31     OU-1100         58
+2 2023-01-31     OU-1200         38
+3 2023-01-31     OU-1300          3
+4 2023-01-31     OU-2000         69</pre>
+<div class="warn"><strong>Last date: 2026-02-28</strong> — four months stale.
+Returns total headcount of 4,168, which is plausible enough to look correct and
+wrong enough to matter. Use <code>dim_worker_snapshot</code> instead.</div>
+</div>
+
+<div class="step">
+<div class="step-head">rpt_attrition_monthly — no denominator</div>
+<pre style="font-size:7.5pt;">       month org_unit_v2  separations
+0 2022-07-31     OU-1200            1
+1 2022-08-31     OU-1100            1
+2 2022-09-30     OU-4100            1
+3 2023-02-28     OU-2200            1
+4 2023-02-28     OU-4200            1</pre>
+<div class="warn"><strong>Three columns: month, org, separations.</strong>
+That's a numerator with no denominator. Computing a rate from this table requires
+silently choosing a denominator from elsewhere. Use <code>fct_separation</code> and
+get headcount from <code>dim_worker_snapshot</code> yourself.</div>
+</div>
+
+<div class="step">
+<div class="step-head">vw_active_workers — too broad</div>
+<pre style="font-size:7.5pt;">  worker_id employee_number worker_type org_unit_v2 location_id employment_status
+0   W100000         E100000      Intern     OU-2000      LOC007            Active
+1   W100001         E100001  Contingent     OU-2200      LOC003            Active
+2   W100002         E100002     Regular     OU-2200      LOC003            Active
+3   W100004         E100004     Regular     OU-4000      LOC002            Active
+4   W100005         E100005     Regular     OU-1200      LOC002            Active</pre>
+<div class="warn"><strong>"Active workers" includes interns and contractors</strong>
+(rows 0–1). Counting this table as "headcount" gives 4,368 instead of 3,647 — an
+overcount of 19.8%.</div>
+</div>
+
+<div class="step">
+<div class="step-head">fct_job_record — fan-out trap</div>
+<pre style="font-size:7.5pt;">  job_record_id worker_id employee_number org_unit_v2 job_profile_id location_id worker_type effective_start effective_end  is_current   change_reason
+0     JR0000001   W100000         E100000     OU-2000          JP-04      LOC007      Intern      2026-05-04    9999-12-31        True            Hire
+1     JR0000002   W100001         E100001     OU-2200          JP-01      LOC003  Contingent      2025-01-15    2025-10-27       False            Hire
+2     JR0000003   W100001         E100001     OU-2200          JP-01      LOC003  Contingent      2025-10-28    9999-12-31        True  Manager Change
+3     JR0000004   W100002         E100002     OU-2200          JP-07      LOC003     Regular      2023-10-19    2024-07-03       False            Hire
+4     JR0000005   W100002         E100002     OU-2200          JP-07      LOC003     Regular      2024-07-04    2025-08-24       False  Manager Change</pre>
+<div class="warn"><strong>12,282 rows for 5,294 workers — 2.32x inflation.</strong>
+Workers with transfers have multiple rows (W100001 in rows 1–2, W100002 in rows 3–4).
+Join this to something and count rows: your number is more than double the real answer,
+with no error message. Use <code>dim_worker_snapshot</code> for headcount.</div>
+</div>
 
 <!-- ============================================================ -->
 <div style="margin-top:16pt; padding-top:8pt; border-top: 1px solid #CBD5DD;">
